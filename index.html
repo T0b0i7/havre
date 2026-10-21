@@ -1,0 +1,1424 @@
+<!doctype html>
+<!--
+  ┌──────────────────────────────────────────────────────────────────┐
+  │ HAVRE — agence immobilière                                      │
+  │ Landing page 3D interactive, archétype « object showcase »        │
+  │                                                                  │
+  │ Three.js r170 + GSAP ScrollTrigger 3.12.5 + Lenis 1.1.0          │
+  │ Post-processing : EffectComposer (three/addons)                   │
+  │                                                                  │
+  │ POUR LANCER — ne pas double-cliquer sur ce fichier.               │
+  │   cd <dossier> && python3 serve_lan.py 8000                      │
+  │   → http://<ip>:8000/                                            │
+  │ Les imports ESM depuis un CDN sont bloqués en file://.           │
+  └──────────────────────────────────────────────────────────────────┘
+-->
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<meta name="description" content="HAVRE — Agence immobilière. Des adresses que l'on visite, pas que l'on parcourt.">
+<title>HAVRE — Agence immobilière</title>
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="./assets/style-app.css">
+
+<style>
+/* ══════════════════════════════════════════════════════════════════
+   JETONS — issus de la maquette de référence
+   ══════════════════════════════════════════════════════════════════ */
+:root{
+  --ciel-clair:#E4EEFF;
+  --ciel:#C6DAFF;
+  --ciel-fonce:#A3BFFE;
+  --blanc:#FFFFFF;
+  --encre:#111E31;
+  --encre-fonce:#0A1030;
+  --gris:#5C5C60;
+  --gris-clair:#7C8492;
+  --trait:rgba(17,30,49,.10);
+  --serif:"Playfair Display", Georgia, "Times New Roman", serif;
+  --sans:"Manrope", ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --r:28px;
+  --r-s:16px;
+  --gouttiere:clamp(16px, 6.4vw, 104px);
+  --ombre:0 40px 90px -50px rgba(18,38,84,.45), 0 4px 14px -6px rgba(18,38,84,.10);
+}
+
+*,*::before,*::after{ box-sizing:border-box; margin:0; padding:0; }
+
+html{ -webkit-text-size-adjust:100%; }
+
+body{
+  font-family:var(--sans);
+  color:var(--encre);
+  background:
+    radial-gradient(88% 62% at 4% -4%, rgba(228,238,255,.95) 0%, rgba(228,238,255,0) 62%),
+    radial-gradient(70% 54% at 98% 92%, rgba(146,175,255,.85) 0%, rgba(146,175,255,0) 58%),
+    linear-gradient(158deg, #D3E3FF 0%, #BBD1FF 46%, #A6C1FD 100%);
+  background-attachment:fixed;
+  min-height:100vh;
+  overflow-x:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+
+::selection{ background:var(--encre-fonce); color:#fff; }
+
+/* ── la scène 3D : fixe, plein écran, sous le contenu ── */
+#webgl{
+  position:fixed; inset:0;
+  width:100%; height:100%;
+  z-index:1;
+  pointer-events:none;
+  display:block;
+}
+
+main{ position:relative; z-index:2; }
+
+/* ── barre de navigation, posée sur la scène ── */
+.entete{
+  position:fixed; top:0; left:0; right:0; z-index:8;
+  transition:background .35s ease, box-shadow .35s ease;
+}
+.entete.scrolled{
+  background:rgba(255,255,255,.9);
+  -webkit-backdrop-filter:blur(18px) saturate(140%);
+  backdrop-filter:blur(18px) saturate(140%);
+  box-shadow:0 1px 0 var(--trait);
+}
+
+/* ── navigation ── */
+.nav{
+  display:flex; align-items:center; gap:1.4rem;
+  max-width:1600px; margin:0 auto;
+  padding:clamp(1.05rem, 2.1vw, 1.7rem) var(--gouttiere);
+  transition:padding .35s ease;
+}
+.entete.scrolled .nav{ padding-top:.72rem; padding-bottom:.72rem; }
+.marque{
+  font-family:var(--serif); font-weight:500;
+  font-size:clamp(1.05rem, 1.5vw, 1.35rem);
+  letter-spacing:.24em; text-transform:uppercase;
+  color:var(--encre); text-decoration:none;
+  white-space:nowrap;
+}
+.nav-liens{ display:flex; gap:clamp(1rem, 2.4vw, 2.4rem); margin-left:auto; }
+.nav-liens a{
+  color:var(--gris); text-decoration:none;
+  font-size:.92rem; font-weight:500; letter-spacing:.01em;
+  padding:.35rem 0; position:relative;
+  transition:color .25s ease;
+}
+.nav-liens a::after{
+  content:""; position:absolute; left:0; right:0; bottom:0; height:1px;
+  background:var(--encre); transform:scaleX(0); transform-origin:left;
+  transition:transform .3s cubic-bezier(.2,.7,.3,1);
+}
+.nav-liens a:hover, .nav-liens a.actif{ color:var(--encre); }
+.nav-liens a:hover::after, .nav-liens a.actif::after{ transform:scaleX(1); }
+.bouton{
+  display:inline-flex; align-items:center; justify-content:center;
+  font:600 .82rem/1 var(--sans); letter-spacing:.02em;
+  color:#fff; background:var(--encre-fonce);
+  border:0; border-radius:999px; padding:.82rem 1.5rem;
+  cursor:pointer; text-decoration:none;
+  transition:transform .2s ease, box-shadow .25s ease, background .25s ease;
+}
+.bouton:hover{ transform:translateY(-1px); box-shadow:0 10px 24px -12px rgba(10,16,48,.6); }
+.bouton:focus-visible{ outline:2px solid var(--encre); outline-offset:3px; }
+.bouton--fantome{ background:transparent; color:var(--encre); box-shadow:inset 0 0 0 1px var(--trait); }
+.bouton--fantome:hover{ box-shadow:inset 0 0 0 1px rgba(17,30,49,.35); }
+.burger{
+  display:none; margin-left:auto;
+  width:44px; height:44px; border:0; background:transparent; cursor:pointer;
+  padding:0; position:relative;
+}
+.burger i{
+  position:absolute; left:11px; right:11px; height:1.5px; background:var(--encre);
+  transition:transform .3s cubic-bezier(.2,.7,.3,1), opacity .2s ease;
+}
+.burger i:nth-child(1){ top:16px; }
+.burger i:nth-child(2){ top:22px; }
+.burger i:nth-child(3){ top:28px; }
+.burger[aria-expanded="true"] i:nth-child(1){ transform:translateY(6px) rotate(45deg); }
+.burger[aria-expanded="true"] i:nth-child(2){ opacity:0; }
+.burger[aria-expanded="true"] i:nth-child(3){ transform:translateY(-6px) rotate(-45deg); }
+
+/* ── hero plein écran : la scène occupe tout le viewport ── */
+#accueil{
+  position:relative;
+  min-height:100svh;
+  padding:clamp(6.5rem, 15vh, 11rem) var(--gouttiere) clamp(1.4rem, 3.4vh, 2.4rem);
+  display:flex; flex-direction:column; justify-content:flex-end;
+  overflow:hidden;
+  scroll-margin-top:0;
+}
+/* voile haut : lisibilité de la nav sur le ciel */
+#accueil::before{
+  content:""; position:absolute; inset:0 0 auto 0; height:26vh; z-index:0;
+  background:linear-gradient(to bottom, rgba(228,238,255,.92), rgba(228,238,255,0));
+  pointer-events:none;
+}
+/* voile bas : lisibilité du titre sur le sol de la scène */
+#accueil::after{
+  content:""; position:absolute; inset:auto 0 0 0; height:56vh; z-index:0;
+  background:linear-gradient(to top, rgba(255,255,255,.97) 0%, rgba(255,255,255,.8) 32%, rgba(255,255,255,0) 100%);
+  pointer-events:none;
+}
+.hero-contenu{
+  position:relative; z-index:1;
+  margin-top:auto;
+  display:flex; flex-direction:column; align-items:center; text-align:center;
+  gap:1.15rem; width:100%;
+}
+.surtitre{
+  display:inline-flex; align-items:center; gap:.5rem;
+  font-size:.78rem; letter-spacing:.06em; text-transform:uppercase;
+  color:rgba(17,30,49,.72);
+  background:rgba(255,255,255,.62);
+  border:1px solid rgba(17,30,49,.07);
+  border-radius:999px; padding:.45rem .95rem;
+  -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
+}
+h1{
+  font-family:var(--serif); font-weight:500;
+  font-size:clamp(2.2rem, 6vw, 5.7rem);
+  line-height:1.01; letter-spacing:-.022em;
+  color:var(--encre);
+}
+.hero-pied{
+  position:relative; z-index:1;
+  margin-top:clamp(2rem, 6vh, 4.2rem);
+  display:flex; align-items:flex-end; justify-content:space-between; gap:2rem;
+  font-size:.82rem;
+}
+.hero-pied p{ color:var(--gris); max-width:40ch; line-height:1.6; }
+.actions{ display:flex; gap:.7rem; flex-wrap:wrap; justify-content:center; margin-top:2rem; }
+.actions--gauche{ justify-content:flex-start; }
+
+/* ── les repères de la scène 3D ── */
+#etiquettes{ position:fixed; inset:0; z-index:3; pointer-events:none; }
+.etiquette{
+  position:absolute; z-index:3; pointer-events:auto;
+  transform:translate(-50%,-100%);
+  background:rgba(255,255,255,.94);
+  backdrop-filter:blur(8px);
+  border:0; border-radius:14px;
+  padding:.7rem .95rem; cursor:pointer;
+  text-align:left; font-family:var(--sans);
+  box-shadow:0 18px 40px -24px rgba(18,38,84,.55);
+  opacity:0; visibility:hidden;
+  transition:opacity .4s ease, transform .4s cubic-bezier(.2,.7,.3,1), box-shadow .25s ease;
+  display:block;
+}
+.etiquette.visible{ opacity:1; visibility:visible; }
+.etiquette:hover{ box-shadow:0 22px 48px -22px rgba(18,38,84,.6); }
+.etiquette b{ display:block; font-weight:600; font-size:.95rem; color:var(--encre); }
+.etiquette span{ display:block; font-size:.78rem; color:var(--gris); margin-top:.15rem; }
+.etiquette::after{
+  content:""; position:absolute; left:50%; bottom:-7px; width:12px; height:12px;
+  background:rgba(255,255,255,.94); transform:translateX(-50%) rotate(45deg);
+  border-radius:2px;
+}
+.lien-bas{
+  display:inline-flex; align-items:center; gap:.6rem;
+  color:var(--encre); text-decoration:none; font-size:.8rem; letter-spacing:.01em;
+  padding-bottom:2px; border-bottom:1px solid rgba(17,30,49,.25);
+  transition:border-color .25s ease, gap .25s ease;
+  white-space:nowrap;
+}
+.lien-bas:hover{ border-bottom-color:var(--encre); gap:.95rem; }
+.lien-bas i{ font-style:normal; }
+
+/* ── sections plein cadre ── */
+section.bande{
+  position:relative; z-index:2;
+  padding:clamp(4.5rem, 13vh, 10rem) var(--gouttiere);
+  background:var(--blanc);
+  border-top:1px solid var(--trait);
+  scroll-margin-top:76px;
+}
+section.bande:nth-of-type(even){ background:#F7FAFF; }
+section.bande.bande--scene{ background:transparent; border-top:0; }
+.bloc{ position:relative; width:100%; max-width:1240px; margin:0 auto; }
+.bloc--etroit{ max-width:900px; }
+.bande--scene{
+  min-height:100svh;
+  display:flex; align-items:center; justify-content:center;
+  text-align:center;
+  padding:clamp(5rem, 15vh, 10rem) var(--gouttiere) !important;
+}
+.bande--scene::before{
+  content:""; position:absolute; inset:0; z-index:-1;
+  background:radial-gradient(58% 52% at 50% 50%, rgba(255,255,255,.92) 0%, rgba(255,255,255,.62) 46%, rgba(255,255,255,0) 78%);
+  pointer-events:none;
+}
+.citation{ display:flex; flex-direction:column; align-items:center; gap:1.4rem; max-width:24ch; }
+.citation .grand-texte{
+  font-family:var(--serif); font-weight:500;
+  font-size:clamp(1.8rem, 4.6vw, 4rem); line-height:1.08; letter-spacing:-.022em;
+}
+.citation .surtitre{ background:rgba(255,255,255,.72); }
+.entete-bloc{ display:flex; flex-wrap:wrap; gap:1.6rem 3rem; align-items:flex-end; justify-content:space-between; margin-bottom:clamp(1.6rem, 3vw, 2.8rem); }
+h2{
+  font-family:var(--serif); font-weight:500;
+  font-size:clamp(1.9rem, 3.6vw, 3.1rem); line-height:1.08; letter-spacing:-.015em;
+  max-width:20ch;
+}
+.entete-bloc p{ color:var(--gris); max-width:42ch; line-height:1.65; font-size:.98rem; }
+
+/* chiffres */
+.chiffres{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:clamp(1.2rem,2.4vw,2.4rem); }
+.chiffre strong{ display:block; font-family:var(--serif); font-weight:500; font-size:clamp(2.1rem,4.2vw,3.4rem); line-height:1; letter-spacing:-.02em; }
+.chiffre span{ display:block; margin-top:.55rem; color:var(--gris); font-size:.88rem; line-height:1.45; }
+
+/* étapes */
+.etapes{ display:grid; grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); gap:clamp(1.4rem,3vw,3rem); }
+.etape{ border-top:1px solid var(--trait); padding-top:1.1rem; }
+.etape i{ font-style:normal; font-size:.8rem; color:var(--gris); letter-spacing:.06em; }
+.etape h3{ font-family:var(--serif); font-weight:500; font-size:1.32rem; margin:.5rem 0 .6rem; }
+.etape p{ color:var(--gris); font-size:.94rem; line-height:1.6; }
+
+/* adresses */
+.adresses{ display:grid; gap:.9rem; }
+.adresse{
+  display:grid; grid-template-columns:auto 1fr auto; gap:1.2rem; align-items:center;
+  width:100%; text-align:left; font-family:var(--sans);
+  background:transparent; border:0; border-top:1px solid var(--trait);
+  padding:1.15rem .2rem; cursor:pointer; color:inherit;
+  transition:padding-left .28s cubic-bezier(.2,.7,.3,1), background .28s ease;
+}
+.adresse:last-child{ border-bottom:1px solid var(--trait); }
+.adresse:hover{ padding-left:.9rem; background:rgba(163,191,254,.12); }
+.adresse .vignette{ width:64px; height:64px; border-radius:14px; background:linear-gradient(150deg,#D8E6FF,#A9C4FE); }
+.adresse b{ font-weight:600; font-size:1.02rem; display:block; }
+.adresse span{ color:var(--gris); font-size:.88rem; }
+.adresse .prix{ font-family:var(--serif); font-size:1.16rem; white-space:nowrap; }
+
+/* formulaire */
+.formulaire{ display:grid; gap:1rem; grid-template-columns:1fr 1fr; }
+.champ{ display:flex; flex-direction:column; gap:.4rem; }
+.champ--plein{ grid-column:1/-1; }
+.champ label{ font-size:.82rem; color:var(--gris); }
+.champ input, .champ select, .champ textarea{
+  font:400 .95rem/1.5 var(--sans); color:var(--encre);
+  background:#F7F9FD; border:1px solid var(--trait); border-radius:12px;
+  padding:.8rem .9rem; width:100%;
+  transition:border-color .2s ease, background .2s ease;
+}
+.champ textarea{ min-height:110px; resize:vertical; }
+.champ input:focus, .champ select:focus, .champ textarea:focus{
+  outline:none; border-color:rgba(17,30,49,.35); background:#fff;
+}
+.champ.erreur input, .champ.erreur select, .champ.erreur textarea{ border-color:#C0473B; }
+.champ .aide{ font-size:.76rem; color:#C0473B; display:none; }
+.champ.erreur .aide{ display:block; }
+.form-actions{ grid-column:1/-1; display:flex; align-items:center; gap:1rem; flex-wrap:wrap; }
+.confirmation{
+  grid-column:1/-1; display:none;
+  background:#EEF7F4; border-radius:14px; padding:1rem 1.1rem;
+  font-size:.92rem; color:#1D5A49;
+}
+.confirmation.visible{ display:block; }
+
+/* pied */
+footer{
+  position:relative; z-index:2;
+  background:var(--encre-fonce); color:#fff;
+  padding:clamp(3.5rem,9vh,7rem) var(--gouttiere) clamp(2rem,5vh,3.4rem);
+}
+footer .pied-grille{
+  display:flex; flex-wrap:wrap; gap:2rem; justify-content:space-between; align-items:flex-start;
+}
+footer .marque{ font-size:1.1rem; color:#fff; }
+footer nav{ display:flex; gap:1.6rem; flex-wrap:wrap; }
+footer nav a{ color:#fff; opacity:.62; text-decoration:none; font-size:.9rem; }
+footer nav a:hover{ opacity:1; text-decoration:underline; text-underline-offset:3px; }
+footer p{ font-size:.82rem; opacity:.42; max-width:34ch; line-height:1.6; }
+footer .signature{
+  font-family:var(--serif); font-weight:500;
+  font-size:clamp(3.4rem, 15vw, 13rem); line-height:.86; letter-spacing:-.03em;
+  color:#fff; opacity:.10; margin-top:clamp(2rem,6vh,4rem);
+  pointer-events:none; user-select:none;
+}
+
+/* ── menu mobile ── */
+.menu-mobile{
+  position:fixed; inset:0; z-index:40;
+  background:linear-gradient(160deg,#D9E7FF,#A9C3FE);
+  padding:calc(1.2rem + env(safe-area-inset-top)) var(--gouttiere) 2.5rem;
+  display:flex; flex-direction:column;
+  transform:translateY(-100%); transition:transform .5s cubic-bezier(.2,.75,.25,1);
+  visibility:hidden;
+}
+.menu-mobile.ouvert{ transform:translateY(0); visibility:visible; }
+.menu-mobile nav{ display:flex; flex-direction:column; margin-top:auto; margin-bottom:auto; gap:.4rem; }
+.menu-mobile nav a{
+  font-family:var(--serif); font-size:clamp(2rem,9vw,3.2rem); font-weight:500;
+  color:var(--encre); text-decoration:none; line-height:1.25;
+  opacity:0; transform:translateY(14px);
+}
+.menu-mobile.ouvert nav a{ opacity:1; transform:none; transition:opacity .5s ease, transform .5s cubic-bezier(.2,.75,.25,1); }
+.menu-mobile .pied{ display:flex; flex-direction:column; gap:1rem; }
+.menu-mobile .pied .bouton{ align-self:flex-start; }
+
+/* ── modale ── */
+.voile{
+  position:fixed; inset:0; z-index:50;
+  background:rgba(10,16,48,.42); backdrop-filter:blur(6px);
+  display:flex; align-items:center; justify-content:center; padding:1.2rem;
+  opacity:0; visibility:hidden; transition:opacity .35s ease, visibility .35s;
+}
+.voile.ouvert{ opacity:1; visibility:visible; }
+.fenetre{
+  background:var(--blanc); border-radius:24px; box-shadow:0 40px 90px -30px rgba(8,14,40,.55);
+  width:min(520px, 100%); padding:clamp(1.6rem,3.4vw,2.6rem);
+  transform:translateY(18px) scale(.98); transition:transform .4s cubic-bezier(.2,.75,.25,1);
+}
+.voile.ouvert .fenetre{ transform:none; }
+.fenetre h3{ font-family:var(--serif); font-weight:500; font-size:1.6rem; margin-bottom:.5rem; }
+.fenetre p{ color:var(--gris); font-size:.92rem; margin-bottom:1.3rem; line-height:1.6; }
+.fermer{
+  position:absolute; top:0; right:0; width:44px; height:44px;
+  border:0; background:transparent; cursor:pointer; color:var(--encre);
+  font-size:1.5rem; line-height:1; opacity:.45;
+}
+.fermer:hover{ opacity:1; }
+.fenetre .formulaire{ grid-template-columns:1fr; }
+
+/* ── fiche bien ── */
+.fiche{
+  position:fixed; top:0; right:0; bottom:0; z-index:45;
+  width:min(460px, 100%);
+  background:var(--blanc);
+  box-shadow:-30px 0 80px -40px rgba(8,14,40,.6);
+  padding:clamp(1.6rem,3.4vw,2.6rem);
+  transform:translateX(100%); transition:transform .5s cubic-bezier(.2,.75,.25,1);
+  display:flex; flex-direction:column; overflow-y:auto;
+}
+.fiche.ouverte{ transform:none; }
+.fiche .visuel{ height:180px; border-radius:16px; background:linear-gradient(150deg,#DCE8FF,#A9C4FE); margin-bottom:1.4rem; }
+.fiche h3{ font-family:var(--serif); font-weight:500; font-size:1.7rem; }
+.fiche .lieu{ color:var(--gris); font-size:.92rem; margin-top:.3rem; }
+.fiche dl{ display:grid; grid-template-columns:auto 1fr; gap:.6rem 1.2rem; margin:1.6rem 0; font-size:.92rem; }
+.fiche dt{ color:var(--gris); }
+.fiche dd{ text-align:right; }
+.fiche .prix{ font-family:var(--serif); font-size:1.5rem; margin:1rem 0 1.4rem; }
+.fiche .bouton{ margin-top:auto; align-self:flex-start; }
+
+/* ── focus visible partout ── */
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible{
+  outline:2px solid var(--encre); outline-offset:3px;
+}
+
+/* ── responsive ── */
+@media (min-width: 901px){
+  h1{ white-space:nowrap; }
+}
+@media (max-width: 900px){
+  .nav-liens, .nav .bouton{ display:none; }
+  .burger{ display:block; }
+  #accueil{ padding-top:clamp(5.5rem, 13vh, 7.5rem); padding-bottom:1.4rem; }
+  #accueil::after{ height:62vh; }
+  #accueil::before{ height:20vh; }
+  .hero-pied{ flex-direction:column; align-items:flex-start; gap:1rem; margin-top:clamp(1.6rem,4vh,2.6rem); }
+  .hero-pied p{ font-size:.78rem; }
+  h1{ font-size:clamp(2.1rem, 9vw, 3.4rem); }
+  .surtitre{ font-size:.68rem; padding:.38rem .8rem; }
+  .formulaire{ grid-template-columns:1fr; }
+  .adresse{ grid-template-columns:auto 1fr; }
+  .adresse .prix{ grid-column:2; }
+  .etiquette{ transform:translate(-50%,-100%) scale(.86); }
+}
+@media (max-width: 560px){
+  h1{ max-width:14ch; }
+  .actions{ width:100%; }
+  .actions .bouton{ flex:1 1 auto; }
+  .bande--scene{ min-height:88svh; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  *{ animation-duration:.01ms !important; transition-duration:.01ms !important; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="webgl" aria-hidden="true"></canvas>
+
+<div class="entete" id="entete">
+  <nav class="nav" aria-label="Navigation principale">
+    <a class="marque" href="#accueil">Havre</a>
+    <div class="nav-liens" id="navLiens">
+      <a href="#/catalogue">Propriétés</a>
+      <a href="#processus">Le processus</a>
+      <a href="#agence">L'agence</a>
+      <a href="#/journal">Journal</a>
+      <a href="#/reconstruire">Plan → 3D</a>
+      <a href="#contact">Contact</a>
+    </div>
+    <button class="bouton" data-modale="alerte">Créer une alerte</button>
+    <button class="burger" id="burger" aria-expanded="false" aria-controls="menuMobile" aria-label="Ouvrir le menu">
+      <i></i><i></i><i></i>
+    </button>
+  </nav>
+</div>
+
+<main>
+
+  <!-- ────────────────────────── HERO plein écran ────────────────────────── -->
+  <section id="accueil">
+    <div class="hero-contenu">
+      <p class="surtitre">Immobilier · Paris, Biarritz, Hossegor</p>
+      <h1>Find Your Perfect Place.</h1>
+      <div class="actions">
+        <a class="bouton" href="#/catalogue">Voir les adresses</a>
+        <button class="bouton bouton--fantome" data-modale="estimation">Estimer un bien</button>
+      </div>
+      <form class="recherche-hero" id="rechercheAccueil" role="search">
+        <input type="search" name="q" placeholder="Ville, quartier, pays, type de bien…" aria-label="Rechercher une adresse">
+        <button type="submit">Chercher</button>
+      </form>
+    </div>
+    <div class="hero-pied">
+      <p>Des lieux que l'on choisit pour y vivre, pas seulement pour y investir.</p>
+      <a href="#adresses" class="lien-bas">Défiler <i aria-hidden="true">↓</i></a>
+    </div>
+  </section>
+
+  <!-- ────────────────────────── AGENCE ────────────────────────── -->
+  <section class="bande" id="agence">
+    <div class="bloc">
+      <div class="entete-bloc">
+        <h2>Nous ne listons pas tout.</h2>
+        <p>Chaque adresse passe par une visite complète, un relevé de surface et des photos faites sur place. Il ne reste que ce que nous accepterions comme rue.</p>
+      </div>
+      <div class="chiffres">
+        <div class="chiffre"><strong>124</strong><span>adresses disponibles aujourd'hui</span></div>
+        <div class="chiffre"><strong>9 ans</strong><span>sur le littoral atlantique</span></div>
+        <div class="chiffre"><strong>38 jours</strong><span>délai médian entre la visite et l'offre</span></div>
+        <div class="chiffre"><strong>1 400</strong><span>visites accompagnées depuis 2017</span></div>
+      </div>
+      <div class="actions actions--gauche">
+        <button class="bouton bouton--fantome" data-modale="estimation">Estimer un bien</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ────────────────────────── PROCESSUS ────────────────────────── -->
+  <section class="bande" id="processus">
+    <div class="bloc">
+      <div class="entete-bloc">
+        <h2>Trois rendez-vous, pas dix e-mails.</h2>
+        <p>Un parcours court, parce que chercher un lieu se fait en marchant dedans.</p>
+      </div>
+      <div class="etapes">
+        <article class="etape">
+          <i>01</i>
+          <h3>La recherche</h3>
+          <p>Vous dites ce qui compte vraiment : la lumière, la rue, l'école, la gare. Nous ramenons trois adresses, pas une liste de trente.</p>
+        </article>
+        <article class="etape">
+          <i>02</i>
+          <h3>La visite</h3>
+          <p>Une heure, trois lieux, un carnet. Vous repartez avec des éléments concrets sur le bruit, le vis-à-vis et le prix réel du marché local.</p>
+        </article>
+        <article class="etape">
+          <i>03</i>
+          <h3>L'offre</h3>
+          <p>Nous négocions, nous rédigeons, nous remettons les clés. Un seul interlocuteur du premier rendez-vous au carnet de remise.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- ────────────────────────── ADRESSES ────────────────────────── -->
+  <section class="bande" id="adresses">
+    <div class="bloc">
+      <div class="entete-bloc">
+        <h2>Trois maisons en ce moment.</h2>
+        <p>Sélection de la semaine. Cliquez sur une adresse pour ouvrir sa fiche.</p>
+      </div>
+      <div class="adresses" id="listeAdresses"></div>
+    </div>
+  </section>
+
+  <!-- ────────────────────────── CATALOGUE ────────────────────────── -->
+  <section class="bande" id="catalogue-accueil">
+    <div class="bloc">
+      <div class="entete-bloc">
+        <h2>Le catalogue, en grand.</h2>
+        <p><span data-compte="biens">28</span> adresses dans <span data-compte="pays">7</span> pays, chacune avec son plan et sa visite 3D. La recherche accepte un pays, une ville, un quartier, un type — ou votre position.</p>
+      </div>
+      <div class="vitrine" id="vitrineAdresses"></div>
+      <div class="actions actions--gauche">
+        <a class="bouton" href="#/catalogue">Explorer le catalogue</a>
+        <a class="bouton bouton--fantome" href="#/reconstruire">Reconstruire un plan</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ────────────────────────── JOURNAL ────────────────────────── -->
+  <section class="bande" id="journal">
+    <div class="bloc">
+      <div class="entete-bloc">
+        <h2>Le journal.</h2>
+        <p>Notes de chantier, lectures de plans, marché. Écrites par celles et ceux qui visitent.</p>
+      </div>
+      <div class="journal-accueil" id="journalAccueil"></div>
+      <div class="actions actions--gauche">
+        <a class="bouton bouton--fantome" href="#/journal">Tous les articles</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ────────────────────────── CITATION plein écran sur la 3D ────────────────────────── -->
+  <section class="bande bande--scene" id="scene">
+    <div class="citation">
+      <p class="surtitre">Havre, depuis 2017</p>
+      <p class="grand-texte">Une maison ne se visite pas sur un plan.</p>
+      <a href="#contact" class="lien-bas">Parlons de votre projet <i aria-hidden="true">→</i></a>
+    </div>
+  </section>
+
+  <!-- ────────────────────────── CONTACT ────────────────────────── -->
+  <section class="bande" id="contact">
+    <div class="bloc bloc--etroit">
+      <div class="entete-bloc">
+        <h2>Parlons de votre projet.</h2>
+        <p>Nous répondons sous 24 h ouvrées. Un nom, un e-mail, et ce qui compte pour vous.</p>
+      </div>
+      <form class="formulaire" id="formContact" novalidate>
+        <div class="champ">
+          <label for="c-nom">Nom</label>
+          <input id="c-nom" name="nom" type="text" autocomplete="name" required>
+          <span class="aide">Indiquez votre nom.</span>
+        </div>
+        <div class="champ">
+          <label for="c-mail">E-mail</label>
+          <input id="c-mail" name="email" type="email" autocomplete="email" required>
+          <span class="aide">Adresse e-mail invalide.</span>
+        </div>
+        <div class="champ">
+          <label for="c-type">Type de bien</label>
+          <select id="c-type" name="type">
+            <option>Maison</option>
+            <option>Appartement</option>
+            <option>Terrain</option>
+            <option>Local commercial</option>
+          </select>
+        </div>
+        <div class="champ">
+          <label for="c-budget">Budget</label>
+          <select id="c-budget" name="budget">
+            <option>Moins de 800 000 €</option>
+            <option>800 000 € — 1,5 M€</option>
+            <option>1,5 M€ — 3 M€</option>
+            <option>Plus de 3 M€</option>
+          </select>
+        </div>
+        <div class="champ champ--plein">
+          <label for="c-message">Votre projet</label>
+          <textarea id="c-message" name="message" placeholder="Ce que vous cherchez, et où."></textarea>
+        </div>
+        <div class="form-actions">
+          <button class="bouton" type="submit">Demander une visite</button>
+          <span style="font-size:.8rem;color:var(--gris)">Réponse sous 24 h ouvrées.</span>
+        </div>
+        <div class="confirmation" id="confirmationContact" role="status">
+          Merci, c'est noté. Nous revenons vers vous sous 24 h ouvrées.
+        </div>
+      </form>
+    </div>
+  </section>
+
+  <footer>
+    <div class="pied-grille">
+      <div>
+        <div class="marque">Havre</div>
+        <p style="margin-top:.7rem">Agence immobilière indépendante. Paris, Biarritz, Hossegor.</p>
+      </div>
+      <nav aria-label="Liens de pied de page">
+        <a href="#adresses">Propriétés</a>
+        <a href="#processus">Le processus</a>
+        <a href="#agence">L'agence</a>
+        <a href="#contact">Contact</a>
+      </nav>
+      <p>© 2026 Havre. Toutes les adresses sont visitées avant publication.</p>
+    </div>
+    <div class="signature" aria-hidden="true">Havre</div>
+  </footer>
+</main>
+
+<!-- ────────────────────────── ÉTIQUETTES 3D ────────────────────────── -->
+<div id="etiquettes"></div>
+
+<!-- ────────────────────────── MENU MOBILE ────────────────────────── -->
+<div class="menu-mobile" id="menuMobile" aria-hidden="true">
+  <div style="display:flex;align-items:center;justify-content:space-between">
+    <span class="marque">Havre</span>
+    <button class="burger" id="burgerFermer" aria-label="Fermer le menu" style="margin-left:auto">
+      <i></i><i></i><i></i>
+    </button>
+  </div>
+  <nav id="menuMobileLiens">
+    <a href="#adresses">Propriétés</a>
+    <a href="#/catalogue">Catalogue</a>
+    <a href="#/journal">Journal</a>
+    <a href="#/reconstruire">Plan → 3D</a>
+    <a href="#processus">Le processus</a>
+    <a href="#agence">L'agence</a>
+    <a href="#contact">Contact</a>
+  </nav>
+  <div class="pied">
+    <button class="bouton" data-modale="alerte">Créer une alerte</button>
+    <a href="tel:+33184802020" style="color:var(--encre);text-decoration:none;font-size:.9rem;opacity:.7">+33 1 84 80 20 20</a>
+  </div>
+</div>
+
+<!-- ────────────────────────── MODALE ────────────────────────── -->
+<div class="voile" id="voile" role="dialog" aria-modal="true" aria-labelledby="titreModale">
+  <div class="fenetre" style="position:relative">
+    <button class="fermer" id="fermerModale" aria-label="Fermer">×</button>
+    <h3 id="titreModale">Créer une alerte</h3>
+    <p id="texteModale">Recevez les nouvelles adresses dès leur mise en ligne.</p>
+    <form class="formulaire" id="formModale" novalidate>
+      <div class="champ champ--plein">
+        <label for="m-mail">E-mail</label>
+        <input id="m-mail" name="email" type="email" autocomplete="email" required>
+        <span class="aide">Adresse e-mail invalide.</span>
+      </div>
+      <div class="champ champ--plein">
+        <label for="m-type">Type de bien</label>
+        <select id="m-type" name="type">
+          <option>Maison</option>
+          <option>Appartement</option>
+          <option>Terrain</option>
+        </select>
+      </div>
+      <div class="form-actions">
+        <button class="bouton" type="submit" id="boutonModale">Créer mon alerte</button>
+      </div>
+      <div class="confirmation" id="confirmationModale" role="status">
+        C'est fait. Vous recevrez les nouvelles adresses dès leur mise en ligne.
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ────────────────────────── FICHE BIEN ────────────────────────── -->
+<aside class="fiche" id="fiche" aria-hidden="true" aria-label="Fiche du bien">
+  <button class="fermer" id="fermerFiche" aria-label="Fermer la fiche">×</button>
+  <div class="visuel" id="ficheVisuel"></div>
+  <h3 id="ficheNom"></h3>
+  <p class="lieu" id="ficheLieu"></p>
+  <p id="ficheDescription" style="color:var(--gris);font-size:.92rem;line-height:1.6"></p>
+  <dl id="ficheCaracteristiques"></dl>
+  <div class="prix" id="fichePrix"></div>
+  <button class="bouton" id="ficheDemander">Organiser une visite</button>
+</aside>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.170.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.170.0/examples/jsm/",
+    "gsap": "https://esm.sh/gsap@3.12.5",
+    "gsap/ScrollTrigger": "https://esm.sh/gsap@3.12.5/ScrollTrigger",
+    "lenis": "https://unpkg.com/lenis@1.1.0/dist/lenis.mjs"
+  }
+}
+</script>
+
+<!-- ══════════════════════════ APPLICATION ══════════════════════════ -->
+<div id="app-vue" class="vue" hidden></div>
+<div id="visite" hidden></div>
+
+<script type="module">
+  import { demarrer } from './assets/app.js';
+  demarrer();
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+import Lenis from 'lenis';
+
+gsap.registerPlugin(ScrollTrigger);
+
+/* ══════════════════════════════════════════════════════════════════
+   OUTILS
+   ══════════════════════════════════════════════════════════════════ */
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const lerp = (a, b, t) => a + (b - a) * t;
+const MOUVEMENT_REDUIT = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** amortissement indépendant de la fréquence d'images */
+function amortir(objet, dt, ease = 0.085) {
+  objet.current += (objet.target - objet.current) * (1 - Math.pow(1 - ease, dt * 60));
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   DONNÉES
+   ══════════════════════════════════════════════════════════════════ */
+const BIENS = [
+  {
+    id: 'alba', nom: 'Villa Alba', lieu: 'Saint-Tropez — Quartier de la Madrague',
+    prix: '2 350 000 €', surface: '240 m²', pieces: '6 pièces', terrain: '1 100 m²',
+    annee: '2019', description:
+      "Une villa neuve ouverte sur le sud, un bassin à débordement aligné sur la mer et un jardin de pins que rien ne traverse.",
+    x: 0, z: 0
+  },
+  {
+    id: 'rivage', nom: 'Maison Rivage', lieu: 'Biarritz — Côte des Basques',
+    prix: '1 180 000 €', surface: '165 m²', pieces: '4 pièces', terrain: '620 m²',
+    annee: '2015', description:
+      "Une maison d'architecte en bord de golf, bardage bois et béton, ouverte sur une terrasse qui longe toute la façade.",
+    x: 19, z: 0
+  },
+  {
+    id: 'dunes', nom: 'Loft des Dunes', lieu: 'Hossegor — Village lacustre',
+    prix: '790 000 €', surface: '120 m²', pieces: '3 pièces', terrain: '380 m²',
+    annee: '2021', description:
+      "Un loft sous les pins, toit plat et grandes baies, à deux pas du lac et de la plage.",
+    x: 38, z: 0
+  }
+];
+
+/* ══════════════════════════════════════════════════════════════════
+   RÉFÉRENCES DOM
+   ══════════════════════════════════════════════════════════════════ */
+const canvas = document.getElementById('webgl');
+const entete = document.getElementById('entete');
+const etiquetteBloc = document.getElementById('etiquettes');
+const navLiens = document.getElementById('navLiens');
+const menuMobile = document.getElementById('menuMobile');
+const burger = document.getElementById('burger');
+const burgerFermer = document.getElementById('burgerFermer');
+const voile = document.getElementById('voile');
+const fiche = document.getElementById('fiche');
+
+/* ══════════════════════════════════════════════════════════════════
+   SCÈNE 3D
+   ══════════════════════════════════════════════════════════════════ */
+const renderer = new THREE.WebGLRenderer({
+  canvas, antialias: true, alpha: true, powerPreference: 'high-performance'
+});
+renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.toneMapping = THREE.NeutralToneMapping;
+renderer.toneMappingExposure = 1.45;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.setClearColor(0x000000, 0);
+
+const scene = new THREE.Scene();
+scene.fog = new THREE.FogExp2(0xDCEAFF, 0.0062);
+
+const camera = new THREE.PerspectiveCamera(34, window.innerWidth / window.innerHeight, 0.5, 400);
+camera.position.set(19, 7.5, 31);
+
+/* ── environnement (réflexions du verre et des surfaces) ── */
+function creerEnvironnement() {
+  const c = document.createElement('canvas');
+  c.width = 16; c.height = 128;
+  const ctx = c.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 0, 128);
+  g.addColorStop(0.00, '#FFFFFF');
+  g.addColorStop(0.42, '#E8F0FF');
+  g.addColorStop(0.58, '#C3D8FF');
+  g.addColorStop(1.00, '#9FB9F2');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 16, 128);
+  const tex = new THREE.CanvasTexture(c);
+  tex.mapping = THREE.EquirectangularReflectionMapping;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  const env = pmrem.fromEquirectangular(tex).texture;
+  pmrem.dispose();
+  tex.dispose();
+  return env;
+}
+scene.environment = creerEnvironnement();
+
+/* ── ciel dégradé, propre à la scène (la 3D est plein cadre) ── */
+function creerCiel() {
+  const c = document.createElement('canvas');
+  c.width = 4; c.height = 512;
+  const ctx = c.getContext('2d');
+  const g = ctx.createLinearGradient(0, 0, 0, 512);
+  g.addColorStop(0.00, '#EDF6FF');
+  g.addColorStop(0.34, '#DCEAFF');
+  g.addColorStop(0.68, '#D2E1F8');
+  g.addColorStop(1.00, '#C9D8F0');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 4, 512);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  return t;
+}
+scene.background = creerCiel();
+
+/* ── halo solaire, pour la profondeur du ciel ── */
+function creerHalo() {
+  const c = document.createElement('canvas');
+  c.width = c.height = 256;
+  const ctx = c.getContext('2d');
+  const g = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+  g.addColorStop(0.00, 'rgba(255,252,244,0.95)');
+  g.addColorStop(0.22, 'rgba(255,247,231,0.42)');
+  g.addColorStop(0.55, 'rgba(255,247,231,0.12)');
+  g.addColorStop(1.00, 'rgba(255,247,231,0)');
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 256, 256);
+  const t = new THREE.CanvasTexture(c);
+  t.colorSpace = THREE.SRGBColorSpace;
+  const m = new THREE.SpriteMaterial({
+    map: t, transparent: true, depthWrite: false,
+    blending: THREE.AdditiveBlending, opacity: 0.85
+  });
+  const sp = new THREE.Sprite(m);
+  sp.scale.set(190, 190, 1);
+  return sp;
+}
+const halo = creerHalo();
+halo.position.set(-52, 74, -130);
+scene.add(halo);
+
+/* ── lumières ── */
+scene.add(new THREE.HemisphereLight(0xE6F1FF, 0x8FB0E8, 2.05));
+const soleil = new THREE.DirectionalLight(0xFFFFFF, 3.1);
+soleil.position.set(16, 22, 14);
+soleil.castShadow = true;
+soleil.shadow.mapSize.set(1024, 1024);
+soleil.shadow.camera.near = 1;
+soleil.shadow.camera.far = 120;
+soleil.shadow.camera.left = -42;
+soleil.shadow.camera.right = 42;
+soleil.shadow.camera.top = 42;
+soleil.shadow.camera.bottom = -42;
+soleil.shadow.bias = -0.0006;
+soleil.shadow.normalBias = 0.025;
+soleil.target.position.set(19, 0, 0);
+scene.add(soleil, soleil.target);
+const contre = new THREE.DirectionalLight(0x94B8FF, 1.0);
+contre.position.set(-18, 9, -14);
+scene.add(contre);
+
+/* ── matières ── */
+const matBlanc = new THREE.MeshStandardMaterial({ color: 0xF7FBFF, roughness: 0.62, metalness: 0.0 });
+const matBeton = new THREE.MeshStandardMaterial({ color: 0xC9DAF7, roughness: 0.88, metalness: 0.0 });
+const matMetal = new THREE.MeshStandardMaterial({ color: 0x93A6C4, roughness: 0.3, metalness: 0.6 });
+const matVerre = new THREE.MeshPhysicalMaterial({
+  color: 0x314877, roughness: 0.05, metalness: 0.34,
+  envMapIntensity: 2.0, clearcoat: 1.0, clearcoatRoughness: 0.04
+});
+const matEau = new THREE.MeshPhysicalMaterial({
+  color: 0x8CC2F2, roughness: 0.02, metalness: 0.0,
+  transparent: true, opacity: 0.85, envMapIntensity: 1.6
+});
+const matVegetal = new THREE.MeshStandardMaterial({ color: 0x84A2BE, roughness: 0.88, flatShading: true });
+
+function boite(w, h, d, mat, x, y, z, parent, ombre = true) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+  m.position.set(x, y, z);
+  m.castShadow = ombre;
+  m.receiveShadow = true;
+  parent.add(m);
+  return m;
+}
+
+/* ── une villa ── */
+function creerVilla() {
+  const g = new THREE.Group();
+
+  // socle
+  boite(10.6, 0.34, 8.6, matBeton, 0, 0.17, 0, g);
+  // rez-de-chaussée
+  boite(9.6, 3.05, 7.6, matBlanc, 0, 1.87, 0, g);
+  // dalle de toit en débord
+  boite(10.9, 0.26, 8.9, matBlanc, 0, 3.52, 0, g);
+  // étage en retrait
+  boite(6.2, 2.75, 5.2, matBlanc, 1.5, 5.02, -0.7, g);
+  boite(7.0, 0.22, 6.0, matBlanc, 1.5, 6.5, -0.7, g);
+
+  // mur rideau
+  boite(9.62, 2.5, 0.08, matVerre, 0, 1.95, 3.81, g, false);
+  // meneaux
+  for (let i = 0; i < 7; i++) {
+    boite(0.07, 2.55, 0.14, matMetal, -4.4 + i * 1.47, 1.95, 3.83, g, false);
+  }
+  // fenêtre d'étage
+  boite(5.9, 1.9, 0.08, matVerre, 1.5, 5.05, 1.92, g, false);
+
+  // terrasse
+  boite(11.4, 0.18, 3.6, matBeton, 0, 0.42, 5.7, g);
+  // piscine + margelle
+  boite(6.6, 0.34, 2.6, matEau, -1.9, 0.17, 6.2, g, false);
+  boite(6.9, 0.12, 2.9, matBlanc, -1.9, 0.36, 6.2, g);
+  // muret de jardin
+  boite(13.6, 0.82, 0.2, matBlanc, 0, 0.41, 8.6, g);
+  boite(0.2, 0.82, 4.2, matBlanc, -6.7, 0.41, 6.5, g);
+  // escalier
+  for (let i = 0; i < 3; i++) {
+    boite(3.2, 0.14, 0.5, matBlanc, -3.4, 0.05 + i * 0.14, 3.95 + i * 0.5, g);
+  }
+  // garde-corps de terrasse
+  boite(11.4, 0.06, 0.06, matMetal, 0, 1.0, 7.5, g, false);
+
+  // végétation : pins stylisés
+  const positions = [[-7.4, 4.2, 1.25], [7.6, 3.0, 1.05], [-6.2, -2.6, 0.9], [6.4, -3.4, 1.15]];
+  positions.forEach(([px, pz, r]) => {
+    const tronc = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.13, 1.9, 7), matBeton);
+    tronc.position.set(px, 0.95, pz);
+    tronc.castShadow = true;
+    g.add(tronc);
+    const feuillage = new THREE.Mesh(new THREE.IcosahedronGeometry(r, 0), matVegetal);
+    feuillage.position.set(px, 2.45, pz);
+    feuillage.castShadow = true;
+    g.add(feuillage);
+    const second = new THREE.Mesh(new THREE.IcosahedronGeometry(r * 0.66, 0), matVegetal);
+    second.position.set(px + 0.2, 3.15, pz - 0.15);
+    second.castShadow = true;
+    g.add(second);
+  });
+
+  // massifs bas
+  [[-4.6, 7.6], [3.2, 7.7], [-6.6, 6.2]].forEach(([px, pz]) => {
+    const b = new THREE.Mesh(new THREE.IcosahedronGeometry(0.46, 0), matVegetal);
+    b.position.set(px, 0.42, pz);
+    b.castShadow = true;
+    g.add(b);
+  });
+
+  return g;
+}
+
+/* ── la rue et le sol ── */
+const sol = new THREE.Mesh(new THREE.PlaneGeometry(400, 400), new THREE.MeshStandardMaterial({
+  color: 0xD2E1FA, roughness: 1.0, metalness: 0.0
+}));
+sol.rotation.x = -Math.PI / 2;
+sol.receiveShadow = true;
+scene.add(sol);
+
+const route = new THREE.Mesh(new THREE.BoxGeometry(150, 0.02, 9), new THREE.MeshStandardMaterial({
+  color: 0xC1D2EF, roughness: 0.95
+}));
+route.position.set(20, 0.011, 17);
+route.receiveShadow = true;
+scene.add(route);
+
+const villas = [];
+const cibles = [];
+BIENS.forEach((bien) => {
+  const v = creerVilla();
+  v.position.set(bien.x, 0, bien.z);
+  scene.add(v);
+  villas.push(v);
+  cibles.push(new THREE.Vector3(bien.x, 4.6, bien.z + 1.2));
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   POST-PROCESSING
+   ══════════════════════════════════════════════════════════════════ */
+const cibleHDR = new THREE.WebGLRenderTarget(window.innerWidth, window.innerHeight, {
+  type: THREE.HalfFloatType
+});
+const composer = new EffectComposer(renderer, cibleHDR);
+composer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+composer.setSize(window.innerWidth, window.innerHeight);
+composer.addPass(new RenderPass(scene, camera));
+
+const bloom = new UnrealBloomPass(
+  new THREE.Vector2(window.innerWidth, window.innerHeight),
+  0.16,   // force
+  0.72,   // rayon
+  0.93    // seuil
+);
+composer.addPass(bloom);
+
+const vignette = new ShaderPass({
+  uniforms: {
+    tDiffuse: { value: null },
+    uSombre: { value: 0.10 },
+    uTemps: { value: 0 }
+  },
+  vertexShader: `
+    varying vec2 vUv;
+    void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }
+  `,
+  fragmentShader: `
+    uniform sampler2D tDiffuse;
+    uniform float uSombre;
+    uniform float uTemps;
+    varying vec2 vUv;
+    float hash(vec2 p){
+      p = fract(p * vec2(123.34, 456.21));
+      p += dot(p, p + 45.32);
+      return fract(p.x * p.y);
+    }
+    void main(){
+      vec4 c = texture2D(tDiffuse, vUv);
+      vec2 d = vUv - 0.5;
+      float v = 1.0 - smoothstep(0.40, 1.02, length(d) * 1.34);
+      float n = hash(vUv * 1024.0 + fract(uTemps) * 91.7) - 0.5;
+      gl_FragColor = vec4(c.rgb * mix(1.0 - uSombre, 1.0, v) + n * 0.014, c.a);
+    }
+  `
+});
+composer.addPass(vignette);
+composer.addPass(new OutputPass());
+
+/* ══════════════════════════════════════════════════════════════════
+   CAMÉRA — trajectoire le long de la rue
+   ══════════════════════════════════════════════════════════════════ */
+const cheminPosition = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(19, 7.5, 31),
+  new THREE.Vector3(13, 5.0, 25),
+  new THREE.Vector3(31, 6.2, 28),
+  new THREE.Vector3(48, 8.0, 25),
+  new THREE.Vector3(58, 10.5, 19)
+]);
+const cheminCible = new THREE.CatmullRomCurve3([
+  new THREE.Vector3(0, 3.2, 0),
+  new THREE.Vector3(5, 3.0, 0),
+  new THREE.Vector3(19, 3.2, 0),
+  new THREE.Vector3(38, 3.4, 0),
+  new THREE.Vector3(47, 3.0, 0)
+]);
+
+const etat = {
+  progression: { current: 0, target: 0 },
+  sourisX: { current: 0, target: 0 },
+  sourisY: { current: 0, target: 0 }
+};
+
+/* ══════════════════════════════════════════════════════════════════
+   SCROLL
+   ══════════════════════════════════════════════════════════════════ */
+const lenis = new Lenis({ duration: 1.15, smoothWheel: true, syncTouch: true });
+lenis.on('scroll', ScrollTrigger.update);
+gsap.ticker.add((time) => lenis.raf(time * 1000));
+gsap.ticker.lagSmoothing(0);
+
+function progressionPage() {
+  const max = Math.max(1, document.documentElement.scrollHeight - window.innerHeight);
+  return clamp(window.scrollY / max, 0, 1);
+}
+
+let progressionScene = 0;
+ScrollTrigger.create({
+  trigger: '#scene',
+  start: 'top bottom',
+  end: 'bottom top',
+  onUpdate: (self) => { progressionScene = self.progress; }
+});
+
+window.addEventListener('scroll', () => {
+  etat.progression.target = progressionPage();
+  entete.classList.toggle('scrolled', window.scrollY > 24);
+}, { passive: true });
+
+/* suivi de la souris */
+window.addEventListener('pointermove', (e) => {
+  etat.sourisX.target = (e.clientX / window.innerWidth) * 2 - 1;
+  etat.sourisY.target = (e.clientY / window.innerHeight) * 2 - 1;
+}, { passive: true });
+
+/* ══════════════════════════════════════════════════════════════════
+   ÉTIQUETTES 3D
+   ══════════════════════════════════════════════════════════════════ */
+const etiquettes = BIENS.map((bien, i) => {
+  const el = document.createElement('button');
+  el.className = 'etiquette';
+  el.type = 'button';
+  el.innerHTML = `<b>${bien.nom}</b><span>${bien.lieu.split('—')[0].trim()} · ${bien.prix}</span>`;
+  el.setAttribute('aria-label', `Ouvrir la fiche de ${bien.nom}`);
+  el.addEventListener('click', () => ouvrirFiche(bien));
+  etiquetteBloc.appendChild(el);
+  return { el, bien, monde: new THREE.Vector3(bien.x, 5.4, bien.z) };
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   INTERFACE
+   ══════════════════════════════════════════════════════════════════ */
+
+/* liste des adresses (section) */
+const listeAdresses = document.getElementById('listeAdresses');
+BIENS.forEach((bien) => {
+  const b = document.createElement('button');
+  b.className = 'adresse';
+  b.type = 'button';
+  b.innerHTML = `
+    <span class="vignette" aria-hidden="true"></span>
+    <span>
+      <b>${bien.nom}</b>
+      <span>${bien.lieu} · ${bien.surface} · ${bien.pieces}</span>
+    </span>
+    <span class="prix">${bien.prix}</span>`;
+  b.addEventListener('click', () => ouvrirFiche(bien));
+  listeAdresses.appendChild(b);
+});
+
+/* fiche bien */
+let ficheActif = null;
+function ouvrirFiche(bien) {
+  ficheActif = bien;
+  document.getElementById('ficheNom').textContent = bien.nom;
+  document.getElementById('ficheLieu').textContent = bien.lieu;
+  document.getElementById('ficheDescription').textContent = bien.description;
+  document.getElementById('fichePrix').textContent = bien.prix;
+  document.getElementById('ficheCaracteristiques').innerHTML = `
+    <dt>Surface</dt><dd>${bien.surface}</dd>
+    <dt>Pièces</dt><dd>${bien.pieces}</dd>
+    <dt>Terrain</dt><dd>${bien.terrain}</dd>
+    <dt>Année</dt><dd>${bien.annee}</dd>`;
+  fiche.classList.add('ouverte');
+  fiche.setAttribute('aria-hidden', 'false');
+  document.getElementById('fermerFiche').focus();
+}
+function fermerFiche() {
+  fiche.classList.remove('ouverte');
+  fiche.setAttribute('aria-hidden', 'true');
+  ficheActif = null;
+}
+document.getElementById('fermerFiche').addEventListener('click', fermerFiche);
+
+/* demande de visite depuis la fiche */
+document.getElementById('ficheDemander').addEventListener('click', () => {
+  const nom = ficheActif ? ficheActif.nom : 'votre projet';
+  fermerFiche();
+  const champ = document.getElementById('c-message');
+  champ.value = `Je souhaite visiter ${nom}. `;
+  lenis.scrollTo('#contact', { offset: -40, duration: 1.2 });
+  setTimeout(() => document.getElementById('c-nom').focus({ preventScroll: true }), 900);
+});
+
+/* menu mobile */
+function ouvrirMenu(ouvert) {
+  menuMobile.classList.toggle('ouvert', ouvert);
+  menuMobile.setAttribute('aria-hidden', ouvert ? 'false' : 'true');
+  burger.setAttribute('aria-expanded', ouvert ? 'true' : 'false');
+  document.body.style.overflow = ouvert ? 'hidden' : '';
+  if (ouvert) {
+    const liens = menuMobile.querySelectorAll('nav a');
+    liens.forEach((l, i) => { l.style.transitionDelay = (0.06 + i * 0.05) + 's'; });
+  }
+}
+burger.addEventListener('click', () => ouvrirMenu(true));
+burgerFermer.addEventListener('click', () => ouvrirMenu(false));
+menuMobile.querySelectorAll('nav a').forEach((a) => {
+  a.addEventListener('click', () => { ouvrirMenu(false); });
+});
+
+/* modale */
+const modales = {
+  alerte: {
+    titre: 'Créer une alerte',
+    texte: 'Recevez les nouvelles adresses dès leur mise en ligne.',
+    action: 'Créer mon alerte',
+    confirmation: "C'est fait. Vous recevrez les nouvelles adresses dès leur mise en ligne."
+  },
+  estimation: {
+    titre: 'Estimer un bien',
+    texte: 'Une estimation en 48 h, établie à partir des biens réellement vendus dans votre rue.',
+    action: 'Demander une estimation',
+    confirmation: 'Merci. Nous revenons vers vous avec une estimation sous 48 h.'
+  }
+};
+let modaleCourante = 'alerte';
+document.querySelectorAll('[data-modale]').forEach((b) => {
+  b.addEventListener('click', () => {
+    if (menuMobile.classList.contains('ouvert')) ouvrirMenu(false);
+    ouvrirModale(b.dataset.modale);
+  });
+});
+function ouvrirModale(cle) {
+  modaleCourante = cle;
+  const m = modales[cle];
+  document.getElementById('titreModale').textContent = m.titre;
+  document.getElementById('texteModale').textContent = m.texte;
+  document.getElementById('boutonModale').textContent = m.action;
+  document.getElementById('confirmationModale').textContent = m.confirmation;
+  document.getElementById('confirmationModale').classList.remove('visible');
+  document.getElementById('formModale').style.display = '';
+  voile.classList.add('ouvert');
+  setTimeout(() => document.getElementById('m-mail').focus(), 120);
+}
+function fermerModale() {
+  voile.classList.remove('ouvert');
+}
+document.getElementById('fermerModale').addEventListener('click', fermerModale);
+voile.addEventListener('click', (e) => { if (e.target === voile) fermerModale(); });
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (voile.classList.contains('ouvert')) fermerModale();
+  else if (fiche.classList.contains('ouverte')) fermerFiche();
+  else if (menuMobile.classList.contains('ouvert')) ouvrirMenu(false);
+});
+
+/* formulaires */
+function valider(champ, test) {
+  const bloc = champ.closest('.champ');
+  const ok = test(champ.value.trim());
+  bloc.classList.toggle('erreur', !ok);
+  return ok;
+}
+function lierFormulaire(form, confirmation, surValide) {
+  form.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const champs = [...form.querySelectorAll('[required]')];
+    let valide = true;
+    champs.forEach((c) => {
+      const test = c.type === 'email'
+        ? (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)
+        : (v) => v.length > 1;
+      if (!valider(c, test)) valide = false;
+    });
+    if (!valide) {
+      form.querySelector('.champ.erreur input, .champ.erreur select')?.focus();
+      return;
+    }
+    surValide?.(form);
+    form.style.display = 'none';
+    confirmation.classList.add('visible');
+  });
+  form.querySelectorAll('input, select, textarea').forEach((c) => {
+    c.addEventListener('input', () => c.closest('.champ')?.classList.remove('erreur'));
+  });
+}
+lierFormulaire(document.getElementById('formContact'), document.getElementById('confirmationContact'));
+lierFormulaire(document.getElementById('formModale'), document.getElementById('confirmationModale'));
+
+/* ancrages */
+document.querySelectorAll('a[href^="#"]').forEach((a) => {
+  a.addEventListener('click', (e) => {
+    const id = a.getAttribute('href');
+    if (id === '#' || id.startsWith('#/')) return;
+    const cible = document.querySelector(id);
+    if (!cible) return;
+    e.preventDefault();
+    lenis.scrollTo(cible, { offset: id === '#accueil' ? 0 : -20, duration: 1.25 });
+  });
+});
+
+/* lien de nav actif */
+const sectionsObservees = ['agence', 'processus', 'adresses', 'contact'];
+sectionsObservees.forEach((id) => {
+  const sec = document.getElementById(id);
+  if (!sec) return;
+  ScrollTrigger.create({
+    trigger: sec, start: 'top 55%', end: 'bottom 45%',
+    onToggle: (self) => {
+      const lien = navLiens.querySelector(`a[href="#${id}"]`);
+      if (lien) lien.classList.toggle('actif', self.isActive);
+    }
+  });
+});
+
+/* ══════════════════════════════════════════════════════════════════
+   REDIMENSIONNEMENT
+   ══════════════════════════════════════════════════════════════════ */
+function redimensionner() {
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  camera.aspect = w / h;
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  renderer.setSize(w, h);
+  composer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  composer.setSize(w, h);
+  bloom.setSize(w, h);
+  entete.classList.toggle('scrolled', window.scrollY > 24);
+}
+window.addEventListener('resize', redimensionner);
+redimensionner();
+
+/* ══════════════════════════════════════════════════════════════════
+   BOUCLE
+   ══════════════════════════════════════════════════════════════════ */
+const clock = new THREE.Clock();
+const positionCourante = new THREE.Vector3();
+const cibleCourante = new THREE.Vector3();
+const projecte = new THREE.Vector3();
+let nbFrames = 0;
+
+function tick() {
+  const dt = Math.min(clock.getDelta(), 0.1);
+  const t = clock.elapsedTime;
+  nbFrames++;
+
+  // une vue applicative est ouverte : on met la scène d'accueil en pause
+  if (document.body.classList.contains('vue-ouverte')) {
+    requestAnimationFrame(tick);
+    return;
+  }
+
+  for (const cle in etat) amortir(etat[cle], dt);
+
+  /* ── caméra ── */
+  const p = etat.progression.current;
+  cheminPosition.getPointAt(clamp(p, 0, 1), positionCourante);
+  cheminCible.getPointAt(clamp(p, 0, 1), cibleCourante);
+
+  if (!MOUVEMENT_REDUIT) {
+    const derive = Math.sin(t * 0.18) * 1.1;
+    positionCourante.x += derive + etat.sourisX.current * 1.5;
+    positionCourante.y += etat.sourisY.current * -0.9 + Math.sin(t * 0.23) * 0.25;
+    cibleCourante.x += etat.sourisX.current * 0.5;
+  }
+
+  // sur un écran étroit, on recule pour garder la villa entière dans le cadre
+  const facteur = clamp(1.18 / camera.aspect, 1, 1.62);
+  if (facteur > 1.001) {
+    positionCourante.sub(cibleCourante).multiplyScalar(facteur).add(cibleCourante);
+  }
+
+  camera.position.copy(positionCourante);
+  camera.lookAt(cibleCourante);
+
+  /* ── étiquettes projetées : visibles sur la séquence plein écran ── */
+  const afficher = progressionScene > 0.06 && progressionScene < 0.94;
+  etiquettes.forEach((et) => {
+    if (!afficher) {
+      et.el.classList.remove('visible');
+      return;
+    }
+    projecte.copy(et.monde).project(camera);
+    const x = (projecte.x * 0.5 + 0.5) * window.innerWidth;
+    const y = (-projecte.y * 0.5 + 0.5) * window.innerHeight;
+    const devant = projecte.z < 1;
+    et.el.style.left = x.toFixed(1) + 'px';
+    et.el.style.top = y.toFixed(1) + 'px';
+    et.el.classList.toggle('visible', devant && x > 40 && x < window.innerWidth - 40);
+  });
+
+  /* ── rendu ── */
+  vignette.uniforms.uTemps.value = t;
+  composer.render();
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+/* ══════════════════════════════════════════════════════════════════
+   SONDES (QA)
+   ══════════════════════════════════════════════════════════════════ */
+window.__havre = {
+  get frames() { return nbFrames; },
+  renderer, scene, camera, composer, bloom, lenis,
+  get etat() { return etat; },
+  variante(bien) { return BIENS.find(b => b.id === bien); },
+  ouvrirFiche, ouvrirMenu, fermerModale, ouvrirModale
+};
+</script>
+</body>
+</html>
