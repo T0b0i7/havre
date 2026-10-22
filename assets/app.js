@@ -919,7 +919,7 @@ function rendreFiche(b) {
 /* ══════════════════════════════════════════════════════════════════
    VISITE 3D
    ══════════════════════════════════════════════════════════════════ */
-function ouvrirVisite(b, planImpose) {
+function ouvrirVisite(b, planImpose, options = {}) {
   const socle = $('#visite');
   if (!socle) return;
   // on ne détruit pas la vue applicative : elle reste montée sous la visite
@@ -938,7 +938,7 @@ function ouvrirVisite(b, planImpose) {
   document.title = `Visite 3D — ${b.titre}`;
   const bien = planImpose ? { ...b, plan: planImpose } : b;
   try {
-    etat.visite = new Visite(socle, bien);
+    etat.visite = new Visite(socle, bien, options);
     const surFermer = () => {
       socle.hidden = true;
       socle.innerHTML = '';
@@ -1298,8 +1298,8 @@ function rendreReconstruction() {
       type: 'Maison', surface: planImporte.surface, chambres: 3, sdb: 2,
       plan: planImporte
     };
-    // hauteur paramétrée : on l'applique en redimensionnant les murs via la visite
-    ouvrirVisite(bien, planImporte);
+    // la hauteur réglée dans le labo pilote réellement les murs de la maquette
+    ouvrirVisite(bien, planImporte, { hauteur: +$('#regH', c).value });
   });
 }
 

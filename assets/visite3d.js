@@ -322,7 +322,7 @@ function cylindre(rt, rb, h, seg, mat, x = 0, y = 0, z = 0) {
 }
 
 /* ── mobilier par pièce ── */
-function meubler(piece, M, identite) {
+function meubler(piece, M, identite = null, hauteur = H_MUR) {
   const g = new THREE.Group();
   const { w, d, type } = piece;
   const cx = piece.x + w / 2, cz = piece.z + d / 2;
@@ -364,8 +364,8 @@ function meubler(piece, M, identite) {
       g.add(cylindre(0.22, 0.14, 0.24, 8, M.terre, -long / 2 + 0.2 + i * 0.3, 0.55, -cote / 2 + 0.05));
     }
     // suspension
-    g.add(cylindre(0.22, 0.28, 0.2, 12, M.blanc, 0, 2.25, 0));
-    g.add(cylindre(0.008, 0.008, 0.4, 4, M.metalNoir, 0, 2.55, 0));
+    g.add(cylindre(0.22, 0.28, 0.2, 12, M.blanc, 0, hauteur - 0.5, 0));
+    g.add(cylindre(0.008, 0.008, 0.4, 4, M.metalNoir, 0, hauteur - 0.2, 0));
   } else if (type === 'cuisine') {
     const long = Math.max(1.8, Math.min(4.4, w - 0.5));
     const x0 = -long / 2;
@@ -595,7 +595,7 @@ function construireNiveau(niveau, M, { hauteur = H_MUR, ext = true, collisions =
   // mobilier
   niveau.pieces.forEach(p => {
     if (p.w < 1.2 || p.d < 1.2) return;
-    const f = meubler(p, M, identite);
+    const f = meubler(p, M, identite, hauteur);
     // orienter le séjour vers la baie si possible
     g.add(f);
     // tapis pour les chambres
@@ -630,6 +630,7 @@ export class Visite {
     this.racine = racine;
     this.bien = bien;
     this.plan = bien.plan || options.plan;
+    this.hauteurMur = clamp(options.hauteur ?? this.plan?._hauteur ?? H_MUR, 2.2, 3.6);
     this.niveau = 0;
     this.mode = 'visite';
     this.detruit = false;
@@ -868,7 +869,7 @@ export class Visite {
     this.W = this.niveauData.largeur;
     this.D = this.niveauData.profondeur;
     // socle + niveau
-    const g = construireNiveau(this.niveauData, this.M, { collisions: this.collisions, identite: this.identite });
+    const g = construireNiveau(this.niveauData, this.M, { collisions: this.collisions, identite: this.identite, hauteur: this.hauteurMur });
     this.groupe.add(g);
     // plafond : masqué en maquette / plan
     g.getObjectByName('plafond').visible = this.mode === 'visite';
@@ -1051,7 +1052,7 @@ export class Visite {
       this.lumieresNuit.push(lanterne);
     };
     pieces.forEach(p => {
-      ajouterLumiere(p.x + p.w / 2, H_MUR - 0.32, p.z + p.d / 2, 10.5, 6.2);
+      ajouterLumiere(p.x + p.w / 2, this.hauteurMur - 0.32, p.z + p.d / 2, 10.5, 6.2);
     });
     // deux fanaux dehors : on lit la terrasse et l'entrée même sans lune
     ajouterLumiere(this.W / 2, 2.15, this.D + 3.15, 7.5, 7.4);
