@@ -79,6 +79,126 @@ html.vue-ouverte{ overflow:hidden; }
 }
 .v-fil:hover{ color:var(--encre); }
 
+/* ── squelettes de chargement : jamais de zone blanche ── */
+.squelette{ pointer-events:none; }
+.sq-img{
+  background:linear-gradient(100deg, #E3ECFC 30%, #EFF5FF 50%, #E3ECFC 70%);
+  background-size:220% 100%; animation:sq-vague 1.5s ease-in-out infinite;
+}
+@keyframes sq-vague{ from{ background-position:120% 0; } to{ background-position:-20% 0; } }
+.squelette-ligne{
+  display:grid; grid-template-columns:auto 1fr auto; gap:1rem; align-items:center;
+  padding:1rem 0; border-bottom:1px solid var(--ligne);
+}
+.sq-vignette{
+  width:64px; height:64px; border-radius:12px; display:block;
+  background:linear-gradient(100deg, #E3ECFC 30%, #EFF5FF 50%, #E3ECFC 70%);
+  background-size:220% 100%; animation:sq-vague 1.5s ease-in-out infinite;
+}
+.sq-texte{ display:grid; gap:.5rem; }
+.sq-texte b, .sq-texte i{ display:block; height:12px; border-radius:6px; background:#E3ECFC; }
+.sq-texte b{ width:38%; }
+.sq-texte i{ width:62%; opacity:.7; }
+.sq-prix{ width:90px; height:14px; border-radius:6px; background:#E3ECFC; }
+.sq-corps{ display:grid; gap:.55rem; padding-top:.9rem; }
+.sq-corps span{ display:block; height:11px; border-radius:6px; background:#E3ECFC; }
+.sq-corps span:nth-child(1){ width:34%; }
+.sq-corps span:nth-child(2){ width:74%; }
+.sq-corps span:nth-child(3){ width:52%; }
+.vitrine-carte.squelette, .j-carte.squelette{ min-height:280px; }
+.vide{
+  grid-column:1/-1; padding:2rem 0; color:#5C5C60; font-size:.94rem;
+  border:1px dashed var(--ligne); border-radius:14px; text-align:center;
+}
+
+/* ── lien secondaire du hero ── */
+.lien-action{
+  display:inline-flex; align-items:center; min-height:44px;
+  background:none; border:0; padding:.5rem .3rem; cursor:pointer;
+  font:500 .92rem/1 var(--sans); color:var(--encre);
+  border-bottom:1px solid rgba(17,30,49,.35);
+  transition:border-color .25s ease, color .25s ease;
+}
+.lien-action:hover{ border-bottom-color:var(--encre); }
+.lien-action:focus-visible{ outline:2px solid var(--encre); outline-offset:4px; }
+
+/* ── explication « Plan en 3D » sous le catalogue ── */
+.cat-explication{
+  margin-top:.9rem; display:inline-block;
+  font-size:.88rem; color:#26324A;
+  background:rgba(42,85,196,.07); border:1px solid rgba(42,85,196,.16);
+  border-radius:999px; padding:.5rem 1rem;
+}
+.cat-explication b{ font-weight:600; }
+.cat-explication a{ color:var(--accent); font-weight:600; text-underline-offset:3px; }
+
+/* ── présentation de l'agence + équipe ── */
+.agence-presentation{
+  display:grid; grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);
+  gap:clamp(1.4rem,4vw,3.4rem); align-items:start;
+}
+.equipe{
+  border:1px dashed var(--trait); border-radius:18px;
+  padding:1.2rem 1.3rem; background:#FBFCFF;
+}
+.equipe-titre{
+  font-size:.74rem; font-weight:600; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--gris);
+}
+.equipe-vide{ margin-top:.6rem; color:var(--gris); font-size:.9rem; line-height:1.6; }
+.agence-methode{ margin-top:clamp(2rem,5vw,3.4rem); }
+.agence-methode h3{
+  font-family:var(--serif); font-weight:500;
+  font-size:clamp(1.5rem,3vw,2.3rem); line-height:1.1; letter-spacing:-.015em;
+}
+.agence-methode p{ margin-top:.7rem; }
+
+/* ── formulaires : piège à robots + consentement + note d'envoi ── */
+.champ--miel{
+  position:absolute !important; left:-9999px; width:1px; height:1px;
+  overflow:hidden; opacity:0; pointer-events:none;
+}
+.champ--consentement{ gap:.35rem; }
+.consentement{
+  display:flex; align-items:flex-start; gap:.6rem;
+  font-size:.86rem; line-height:1.55; color:#3C4757; cursor:pointer;
+}
+.consentement input{
+  flex:none; width:18px; height:18px; margin-top:.15rem; accent-color:var(--encre-fonce);
+}
+.consentement a{ color:var(--accent); text-underline-offset:3px; }
+.champ--consentement.erreur .consentement{ color:#C0473B; }
+.envoi-note{
+  grid-column:1/-1; margin-top:.9rem;
+  background:#FFF6E8; border:1px solid #F0D9AE; border-radius:14px;
+  padding:.9rem 1.05rem; font-size:.85rem; line-height:1.65; color:#7A4E11;
+}
+.envoi-note b{ display:block; margin-bottom:.2rem; }
+.ml-alerte{
+  display:block; margin-top:.6rem; font-size:.82rem; color:#7A4E11;
+  background:#FFF6E8; border-radius:10px; padding:.6rem .75rem;
+}
+
+/* ── mentions légales ── */
+.vue-mentions .ml-corps{
+  max-width:900px; margin:0 auto;
+  padding:clamp(1.4rem,3vw,2.6rem) var(--v-gouttiere) clamp(3rem,7vw,5rem);
+  display:grid; gap:clamp(1.6rem,3vw,2.6rem);
+}
+.ml-corps h2{
+  font-family:var(--serif); font-weight:500; font-size:clamp(1.3rem,2.4vw,1.8rem);
+  margin-bottom:.8rem;
+}
+.ml-corps p{ color:#3C4757; font-size:.94rem; line-height:1.75; margin-bottom:.7rem; }
+.ml-corps dl{ display:grid; gap:0; border-top:1px solid var(--ligne); }
+.ml-ligne{
+  display:grid; grid-template-columns:minmax(160px,240px) minmax(0,1fr);
+  gap:1rem; padding:.7rem 0; border-bottom:1px solid var(--ligne);
+}
+.ml-ligne dt{ font-size:.82rem; font-weight:600; letter-spacing:.02em; color:var(--gris); }
+.ml-ligne dd{ font-size:.92rem; color:var(--encre); }
+.ml-retour{ margin-top:.6rem; }
+
 .surtitre-v, .v-sur{
   font-size:.78rem; font-weight:500; letter-spacing:.06em;
   text-transform:uppercase; color:#5C5C60;
@@ -1009,6 +1129,8 @@ html.vue-ouverte{ overflow:hidden; }
 }
 
 @media (max-width: 960px){
+  .agence-presentation{ grid-template-columns:1fr; }
+  .ml-ligne{ grid-template-columns:1fr; gap:.2rem; }
   .fiche-galerie{ grid-template-columns:1fr; }
   .gal-vignettes{ grid-template-columns:repeat(4,1fr); }
   .gal-vignettes button{ aspect-ratio:1/1; }

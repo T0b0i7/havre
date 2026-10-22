@@ -18,12 +18,33 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="color-scheme" content="light">
-<meta name="description" content="HAVRE — Agence immobilière. Des adresses que l'on visite, pas que l'on parcourt.">
-<title>HAVRE — Agence immobilière</title>
+<meta name="description" content="HAVRE — Agence immobilière à Paris, Biarritz et Hossegor. Des adresses que l'on visite, pas que l'on parcourt : catalogue, fiches détaillées et visite 3D depuis le plan.">
+<title>HAVRE — Agence immobilière · Paris, Biarritz, Hossegor</title>
+
+<!-- favicon -->
+<link rel="icon" href="./assets/img/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="./assets/img/favicon.png" sizes="512x512" type="image/png">
+<link rel="apple-touch-icon" href="./assets/img/apple-touch-icon.png">
+<meta name="theme-color" content="#111E31">
+
+<!-- partage social -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="HAVRE">
+<meta property="og:locale" content="fr_FR">
+<meta property="og:title" content="HAVRE — Agence immobilière · Paris, Biarritz, Hossegor">
+<meta property="og:description" content="Des adresses que l'on visite, pas que l'on parcourt. Catalogue, fiches et visite 3D depuis le plan.">
+<meta property="og:image" content="./assets/img/og-havre.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="HAVRE — agence immobilière, Paris, Biarritz, Hossegor">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="HAVRE — Agence immobilière">
+<meta name="twitter:description" content="Des adresses que l'on visite, pas que l'on parcourt.">
+<meta name="twitter:image" content="./assets/img/og-havre.png">
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600&family=Playfair+Display:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="./assets/style-app.css">
 
 <style>
@@ -293,7 +314,7 @@ h2{
 }
 .adresse:last-child{ border-bottom:1px solid var(--trait); }
 .adresse:hover{ padding-left:.9rem; background:rgba(163,191,254,.12); }
-.adresse .vignette{ width:64px; height:64px; border-radius:14px; background:linear-gradient(150deg,#D8E6FF,#A9C4FE); }
+.adresse .vignette{ width:64px; height:64px; border-radius:14px; object-fit:cover; display:block; background:linear-gradient(150deg,#D8E6FF,#A9C4FE); }
 .adresse b{ font-weight:600; font-size:1.02rem; display:block; }
 .adresse span{ color:var(--gris); font-size:.88rem; }
 .adresse .prix{ font-family:var(--serif); font-size:1.16rem; white-space:nowrap; }
@@ -409,6 +430,17 @@ footer .signature{
 .fiche .prix{ font-family:var(--serif); font-size:1.5rem; margin:1rem 0 1.4rem; }
 .fiche .bouton{ margin-top:auto; align-self:flex-start; }
 
+/* ── zones tactiles : 44 px minimum sur les écrans étroits ── */
+@media (max-width: 900px){
+  .nav-liens a, footer nav a, .menu-mobile nav a{ min-height:44px; display:inline-flex; align-items:center; }
+  .lien-bas{ min-height:44px; }
+  .champ input, .champ select, .champ textarea{ min-height:44px; }
+  .consentement{ min-height:44px; align-items:center; }
+  .consentement input{ width:22px; height:22px; margin-top:0; }
+  .recherche-hero button{ height:44px; }
+  .recherche-hero input{ min-height:44px; }
+}
+
 /* ── focus visible partout ── */
 a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible{
   outline:2px solid var(--encre); outline-offset:3px;
@@ -457,7 +489,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
       <a href="#processus">Le processus</a>
       <a href="#agence">L'agence</a>
       <a href="#/journal">Journal</a>
-      <a href="#/reconstruire">Plan → 3D</a>
+      <a href="#/reconstruire">Plan en 3D</a>
       <a href="#contact">Contact</a>
     </div>
     <button class="bouton" data-modale="alerte">Créer une alerte</button>
@@ -473,14 +505,14 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   <section id="accueil">
     <div class="hero-contenu">
       <p class="surtitre">Immobilier · Paris, Biarritz, Hossegor</p>
-      <h1>Find Your Perfect Place.</h1>
+      <h1>Des adresses que l'on visite,<br>pas que l'on parcourt.</h1>
       <div class="actions">
         <a class="bouton" href="#/catalogue">Voir les adresses</a>
-        <button class="bouton bouton--fantome" data-modale="estimation">Estimer un bien</button>
+        <button class="lien-action" type="button" data-modale="estimation">Estimer un bien</button>
       </div>
       <form class="recherche-hero" id="rechercheAccueil" role="search">
-        <input type="search" name="q" placeholder="Ville, quartier, pays, type de bien…" aria-label="Rechercher une adresse">
-        <button type="submit">Chercher</button>
+        <input type="search" name="q" placeholder="Ville, quartier ou type de bien…" aria-label="Rechercher une adresse">
+        <button type="submit" aria-label="Rechercher dans le catalogue">→</button>
       </form>
     </div>
     <div class="hero-pied">
@@ -492,12 +524,23 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   <!-- ────────────────────────── AGENCE ────────────────────────── -->
   <section class="bande" id="agence">
     <div class="bloc">
-      <div class="entete-bloc">
-        <h2>Nous ne listons pas tout.</h2>
-        <p>Chaque adresse passe par une visite complète, un relevé de surface et des photos faites sur place. Il ne reste que ce que nous accepterions comme rue.</p>
+      <div class="agence-presentation">
+        <div class="entete-bloc">
+          <p class="surtitre">L'agence · depuis 2017</p>
+          <h2>Trois ports d'attache, une même exigence.</h2>
+          <p>Havre est une agence immobilière indépendante fondée en 2017. Nous accompagnons l'achat, la vente et la location à Paris, Biarritz et Hossegor, avec une méthode simple : visiter, vérifier, puis proposer.</p>
+        </div>
+        <div class="equipe">
+          <p class="equipe-titre">L'équipe</p>
+          <p class="equipe-vide">[À COMPLÉTER : noms, photos, rôles]</p>
+        </div>
+      </div>
+      <div class="entete-bloc agence-methode">
+        <h3>Nous ne listons pas tout.</h3>
+        <p>Chaque adresse passe par une visite complète, un relevé de surface et des photos faites sur place. Il ne reste que ce que nous accepterions d'habiter nous-mêmes.</p>
       </div>
       <div class="chiffres">
-        <div class="chiffre"><strong>124</strong><span>adresses disponibles aujourd'hui</span></div>
+        <div class="chiffre"><strong data-compte="biens">28</strong><span>adresses disponibles aujourd'hui</span></div>
         <div class="chiffre"><strong>9 ans</strong><span>sur le littoral atlantique</span></div>
         <div class="chiffre"><strong>38 jours</strong><span>délai médian entre la visite et l'offre</span></div>
         <div class="chiffre"><strong>1 400</strong><span>visites accompagnées depuis 2017</span></div>
@@ -542,7 +585,11 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
         <h2>Trois maisons en ce moment.</h2>
         <p>Sélection de la semaine. Cliquez sur une adresse pour ouvrir sa fiche.</p>
       </div>
-      <div class="adresses" id="listeAdresses"></div>
+      <div class="adresses" id="listeAdresses" aria-busy="true">
+        <div class="squelette-ligne" aria-hidden="true"><span class="sq-vignette"></span><span class="sq-texte"><b></b><i></i></span><span class="sq-prix"></span></div>
+        <div class="squelette-ligne" aria-hidden="true"><span class="sq-vignette"></span><span class="sq-texte"><b></b><i></i></span><span class="sq-prix"></span></div>
+        <div class="squelette-ligne" aria-hidden="true"><span class="sq-vignette"></span><span class="sq-texte"><b></b><i></i></span><span class="sq-prix"></span></div>
+      </div>
     </div>
   </section>
 
@@ -551,9 +598,14 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
     <div class="bloc">
       <div class="entete-bloc">
         <h2>Le catalogue, en grand.</h2>
-        <p><span data-compte="biens">28</span> adresses dans <span data-compte="pays">7</span> pays, chacune avec son plan et sa visite 3D. La recherche accepte un pays, une ville, un quartier, un type — ou votre position.</p>
+        <p><span data-compte="biens">28</span> adresses visitées, dont Paris, Biarritz et Hossegor. Chacune avec son plan et sa visite 3D. La recherche accepte une ville, un quartier, un type — ou votre position.</p>
+        <p class="cat-explication"><b>Plan en 3D</b> — Envoyez le plan d'un bien, nous le transformons en visite 3D. <a href="#/reconstruire">Essayer</a></p>
       </div>
-      <div class="vitrine" id="vitrineAdresses"></div>
+      <div class="vitrine" id="vitrineAdresses" aria-busy="true">
+        <div class="vitrine-carte squelette" aria-hidden="true"><div class="sq-img"></div><div class="sq-corps"><span></span><span></span><span></span></div></div>
+        <div class="vitrine-carte squelette" aria-hidden="true"><div class="sq-img"></div><div class="sq-corps"><span></span><span></span><span></span></div></div>
+        <div class="vitrine-carte squelette" aria-hidden="true"><div class="sq-img"></div><div class="sq-corps"><span></span><span></span><span></span></div></div>
+      </div>
       <div class="actions actions--gauche">
         <a class="bouton" href="#/catalogue">Explorer le catalogue</a>
         <a class="bouton bouton--fantome" href="#/reconstruire">Reconstruire un plan</a>
@@ -568,7 +620,11 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
         <h2>Le journal.</h2>
         <p>Notes de chantier, lectures de plans, marché. Écrites par celles et ceux qui visitent.</p>
       </div>
-      <div class="journal-accueil" id="journalAccueil"></div>
+      <div class="journal-accueil" id="journalAccueil" aria-busy="true">
+        <div class="j-carte squelette" aria-hidden="true"><div class="sq-img"></div><div class="sq-corps"><span></span><span></span></div></div>
+        <div class="j-carte squelette" aria-hidden="true"><div class="sq-img"></div><div class="sq-corps"><span></span><span></span></div></div>
+        <div class="j-carte squelette" aria-hidden="true"><div class="sq-img"></div><div class="sq-corps"><span></span><span></span></div></div>
+      </div>
       <div class="actions actions--gauche">
         <a class="bouton bouton--fantome" href="#/journal">Tous les articles</a>
       </div>
@@ -624,12 +680,28 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
           <label for="c-message">Votre projet</label>
           <textarea id="c-message" name="message" placeholder="Ce que vous cherchez, et où."></textarea>
         </div>
+        <div class="champ champ--plein champ--miel" aria-hidden="true">
+          <label for="c-societe">Société (ne pas remplir)</label>
+          <input id="c-societe" name="societe" type="text" tabindex="-1" autocomplete="off">
+        </div>
+        <div class="champ champ--plein champ--consentement">
+          <label class="consentement">
+            <input type="checkbox" name="consentement" required>
+            <span>J'accepte que mes informations soient utilisées pour répondre à ma demande. Voir les <a href="#/mentions">mentions légales</a>.</span>
+          </label>
+          <span class="aide">Merci de cocher cette case.</span>
+        </div>
         <div class="form-actions">
           <button class="bouton" type="submit">Demander une visite</button>
           <span style="font-size:.8rem;color:var(--gris)">Réponse sous 24 h ouvrées.</span>
         </div>
         <div class="confirmation" id="confirmationContact" role="status">
           Merci, c'est noté. Nous revenons vers vous sous 24 h ouvrées.
+        </div>
+        <div class="envoi-note" id="noteEnvoiContact" role="status" hidden>
+          <b>Envoi non configuré.</b> Ce formulaire n'est relié à aucun service : la demande n'a pas été transmise.
+          Écrivez-nous directement à <span data-contact-mail>[À COMPLÉTER : adresse e-mail]</span> ou au <a data-tel href="tel:+33184802020">+33 1 84 80 20 20</a>.
+          <span class="ml-alerte"><b>À COMPLÉTER :</b> brancher une API (route serveur, Resend, Formspree) pour activer l'envoi.</span>
         </div>
       </form>
     </div>
@@ -642,10 +714,13 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
         <p style="margin-top:.7rem">Agence immobilière indépendante. Paris, Biarritz, Hossegor.</p>
       </div>
       <nav aria-label="Liens de pied de page">
-        <a href="#adresses">Propriétés</a>
+        <a href="#/catalogue">Propriétés</a>
         <a href="#processus">Le processus</a>
         <a href="#agence">L'agence</a>
+        <a href="#/journal">Journal</a>
+        <a href="#/reconstruire">Plan en 3D</a>
         <a href="#contact">Contact</a>
+        <a href="#/mentions">Mentions légales</a>
       </nav>
       <p>© 2026 Havre. Toutes les adresses sont visitées avant publication.</p>
     </div>
@@ -665,17 +740,17 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
     </button>
   </div>
   <nav id="menuMobileLiens">
-    <a href="#adresses">Propriétés</a>
-    <a href="#/catalogue">Catalogue</a>
-    <a href="#/journal">Journal</a>
-    <a href="#/reconstruire">Plan → 3D</a>
+    <a href="#/catalogue">Propriétés</a>
     <a href="#processus">Le processus</a>
     <a href="#agence">L'agence</a>
+    <a href="#/journal">Journal</a>
+    <a href="#/reconstruire">Plan en 3D</a>
     <a href="#contact">Contact</a>
+    <a href="#/mentions">Mentions légales</a>
   </nav>
   <div class="pied">
     <button class="bouton" data-modale="alerte">Créer une alerte</button>
-    <a href="tel:+33184802020" style="color:var(--encre);text-decoration:none;font-size:.9rem;opacity:.7">+33 1 84 80 20 20</a>
+    <a href="tel:+33184802020" data-tel style="color:var(--encre);text-decoration:none;font-size:.9rem;opacity:.7">+33 1 84 80 20 20</a>
   </div>
 </div>
 
@@ -699,11 +774,26 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
           <option>Terrain</option>
         </select>
       </div>
+      <div class="champ champ--plein champ--miel" aria-hidden="true">
+        <label for="m-societe">Société (ne pas remplir)</label>
+        <input id="m-societe" name="societe" type="text" tabindex="-1" autocomplete="off">
+      </div>
+      <div class="champ champ--plein champ--consentement">
+        <label class="consentement">
+          <input type="checkbox" name="consentement" required>
+          <span>J'accepte de recevoir l'alerte e-mail et le traitement de mon adresse à cette fin. Voir les <a href="#/mentions">mentions légales</a>.</span>
+        </label>
+        <span class="aide">Merci de cocher cette case.</span>
+      </div>
       <div class="form-actions">
         <button class="bouton" type="submit" id="boutonModale">Créer mon alerte</button>
       </div>
       <div class="confirmation" id="confirmationModale" role="status">
         C'est fait. Vous recevrez les nouvelles adresses dès leur mise en ligne.
+      </div>
+      <div class="envoi-note" id="noteEnvoiModale" role="status" hidden>
+        <b>Envoi non configuré.</b> Aucun service d'e-mail n'est branché : votre alerte n'a pas été enregistrée.
+        <span class="ml-alerte"><b>À COMPLÉTER :</b> brancher une API d'envoi pour activer l'alerte.</span>
       </div>
     </form>
   </div>
@@ -1155,12 +1245,14 @@ const etiquettes = BIENS.map((bien, i) => {
 
 /* liste des adresses (section) */
 const listeAdresses = document.getElementById('listeAdresses');
+listeAdresses.removeAttribute('aria-busy');
+if (!BIENS.length) listeAdresses.innerHTML = '<p class="vide">Les adresses arrivent. Revenez dans un instant.</p>';
 BIENS.forEach((bien) => {
   const b = document.createElement('button');
   b.className = 'adresse';
   b.type = 'button';
   b.innerHTML = `
-    <span class="vignette" aria-hidden="true"></span>
+    <img class="vignette" src="${bien.photo || bien.couverture}" alt="${bien.nom} — ${bien.lieu.split('·')[0].trim()}" loading="lazy" decoding="async">
     <span>
       <b>${bien.nom}</b>
       <span>${bien.lieu} · ${bien.surface} · ${bien.pieces}</span>
@@ -1251,6 +1343,7 @@ function ouvrirModale(cle) {
   document.getElementById('boutonModale').textContent = m.action;
   document.getElementById('confirmationModale').textContent = m.confirmation;
   document.getElementById('confirmationModale').classList.remove('visible');
+  document.getElementById('noteEnvoiModale')?.setAttribute('hidden', '');
   document.getElementById('formModale').style.display = '';
   voile.classList.add('ouvert');
   setTimeout(() => document.getElementById('m-mail').focus(), 120);
@@ -1274,12 +1367,39 @@ function valider(champ, test) {
   bloc.classList.toggle('erreur', !ok);
   return ok;
 }
-function lierFormulaire(form, confirmation, surValide) {
-  form.addEventListener('submit', (e) => {
+/* Envoi : AUCUN service n'est branché pour l'instant. Mettre une URL ici
+   (route serveur, Resend, Formspree…) active réellement l'envoi. */
+const ENDPOINT_FORMULAIRE = '';
+
+async function envoyerFormulaire(form) {
+  const donnees = new FormData(form);
+  // piège à robots : un humain ne remplit jamais ce champ, on abandonne en silence
+  if ((donnees.get('societe') || '').trim() !== '') return { ok: true, piege: true };
+  if (!ENDPOINT_FORMULAIRE) return { ok: false, raison: 'non-configure' };
+  try {
+    const r = await fetch(ENDPOINT_FORMULAIRE, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(Object.fromEntries(donnees))
+    });
+    return r.ok ? { ok: true } : { ok: false, raison: 'erreur ' + r.status };
+  } catch (err) {
+    return { ok: false, raison: 'reseau' };
+  }
+}
+
+function lierFormulaire(form, confirmation, noteEnvoi) {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
     const champs = [...form.querySelectorAll('[required]')];
     let valide = true;
     champs.forEach((c) => {
+      if (c.type === 'checkbox') {
+        const bloc = c.closest('.champ');
+        bloc?.classList.toggle('erreur', !c.checked);
+        if (!c.checked) valide = false;
+        return;
+      }
       const test = c.type === 'email'
         ? (v) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v)
         : (v) => v.length > 1;
@@ -1289,16 +1409,33 @@ function lierFormulaire(form, confirmation, surValide) {
       form.querySelector('.champ.erreur input, .champ.erreur select')?.focus();
       return;
     }
-    surValide?.(form);
-    form.style.display = 'none';
+    const bouton = form.querySelector('button[type="submit"]');
+    if (bouton) bouton.disabled = true;
+    const res = await envoyerFormulaire(form);
+    if (bouton) bouton.disabled = false;
+    if (res.piege) return;
+    if (!res.ok) {
+      // pas de faux succès : on dit clairement que rien n'a été envoyé
+      noteEnvoi?.removeAttribute('hidden');
+      form.querySelector('.envoi-note')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+    form.reset();
+    if (form.id !== 'formModale') form.style.display = 'none';
     confirmation.classList.add('visible');
   });
   form.querySelectorAll('input, select, textarea').forEach((c) => {
-    c.addEventListener('input', () => c.closest('.champ')?.classList.remove('erreur'));
+    const evt = c.type === 'checkbox' ? 'change' : 'input';
+    c.addEventListener(evt, () => c.closest('.champ')?.classList.remove('erreur'));
   });
 }
-lierFormulaire(document.getElementById('formContact'), document.getElementById('confirmationContact'));
-lierFormulaire(document.getElementById('formModale'), document.getElementById('confirmationModale'));
+lierFormulaire(document.getElementById('formContact'), document.getElementById('confirmationContact'), document.getElementById('noteEnvoiContact'));
+lierFormulaire(document.getElementById('formModale'), document.getElementById('confirmationModale'), document.getElementById('noteEnvoiModale'));
+
+/* téléphone + e-mail centralisés : une seule source à modifier */
+const AGENCE_TEL = { tel: '+33 1 84 80 20 20', href: 'tel:+33184802020' };
+document.querySelectorAll('a[data-tel]').forEach((a) => { a.textContent = AGENCE_TEL.tel; a.href = AGENCE_TEL.href; });
+document.querySelectorAll('[data-agence-tel]').forEach((el) => { el.textContent = AGENCE_TEL.tel; });
 
 /* ancrages */
 document.querySelectorAll('a[href^="#"]').forEach((a) => {

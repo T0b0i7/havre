@@ -23,6 +23,7 @@ serve_lan.py          petit serveur local (python3 serve_lan.py 8080)
 
 ## Routes
 
+- `#/mentions` (mentions légales, confidentialité, honoraires)
 - `#/catalogue`
 - `#/bien/:id`
 - `#/journal`
@@ -44,6 +45,19 @@ python3 serve_lan.py 8080
 ## Déploiement
 
 Site statique : aucun build. Sur Vercel, le dossier racine est publié directement.
+
+## Points à compléter avant mise en ligne
+
+| Où | Quoi |
+|---|---|
+| `assets/data.js` → `AGENCE.tel` | numéro de téléphone réel (valeur actuelle : démonstration) |
+| `assets/data.js` → `AGENCE.mentions` | raison sociale, SIRET, carte professionnelle, éditeur, hébergeur |
+| `index.html` → `AGENCE_TEL` | même numéro, source unique pour les liens `data-tel` |
+| `index.html` → `ENDPOINT_FORMULAIRE` | URL d'envoi (route serveur, Resend, Formspree). Vide = aucun envoi, un avertissement s'affiche |
+| `#/mentions`, section Équipe (`#agence`) | noms, photos, rôles |
+| `AGENCE.contact` | nom, adresse postale et e-mail de contact |
+
+Tant que `ENDPOINT_FORMULAIRE` est vide, les formulaires **n'envoient rien** et le disent explicitement à l'utilisateur (pas de faux message de succès).
 
 ## Crédits
 

@@ -1,7 +1,7 @@
 /* ══════════════════════════════════════════════════════════════════
    HAVRE — application : catalogue, recherche, carte, fiches, journal
    ══════════════════════════════════════════════════════════════════ */
-import { BIENS, ARTICLES, img, formatPrix, normaliser, distanceKm, VILLES, PAYS, TYPES, creerPlan } from './data.js';
+import { BIENS, ARTICLES, AGENCE, img, formatPrix, normaliser, distanceKm, VILLES, PAYS, TYPES, creerPlan } from './data.js';
 import { Visite, planSVG, analyserImagePlan, analyserSVGPlan, planDepuisMurs, dessinerPlanCanvas } from './visite3d.js';
 
 const $ = (s, r = document) => r.querySelector(s);
@@ -154,6 +154,7 @@ export function ouvrirRoute() {
     if (a) { rendreArticle(a); return; }
   }
   if (route === 'reconstruire') { rendreReconstruction(); return; }
+  if (route === 'mentions') { rendreMentions(); return; }
   if (route === 'catalogue') { rendreCatalogue(params); return; }
   fermerVue();
 }
@@ -208,7 +209,7 @@ function enteteVue({ actif = 'catalogue', retour = '' } = {}) {
       <a href="#processus" data-retour>Le processus</a>
       <a href="#agence" data-retour>L'agence</a>
       <a href="#/journal" class="${actif === 'journal' ? 'actif' : ''}">Journal</a>
-      <a href="#/reconstruire" class="${actif === 'reconstruire' ? 'actif' : ''}">Plan → 3D</a>
+      <a href="#/reconstruire" class="${actif === 'reconstruire' ? 'actif' : ''}">Plan en 3D</a>
       <a href="#contact" data-retour>Contact</a>
     </nav>
     <div class="v-tete-actions">
@@ -231,8 +232,9 @@ function piedVue() {
         <a href="#processus" data-retour>Le processus</a>
         <a href="#agence" data-retour>L'agence</a>
         <a href="#/journal">Journal</a>
-        <a href="#/reconstruire">Plan → 3D</a>
+        <a href="#/reconstruire">Plan en 3D</a>
         <a href="#contact" data-retour>Contact</a>
+        <a href="#/mentions">Mentions légales</a>
       </nav>
       <p>© 2026 Havre. Toutes les adresses sont visitées avant publication.</p>
     </div>
@@ -270,7 +272,7 @@ async function rendreCatalogue(params) {
     <div class="cat-intro">
       <p class="surtitre-v">Catalogue · ${BIENS.length} adresses visitées</p>
       <h1 class="cat-titre">Trouver la <em>juste</em> adresse.</h1>
-      <p class="cat-sous">Recherchez par pays, ville, quartier ou type de bien. Votre position, si vous l'acceptez, classe les adresses par distance — puis « Autour de moi » resserre le rayon.</p>
+      <p class="cat-sous">Recherchez par ville, quartier ou type de bien. Votre position, si vous l'acceptez, classe les adresses par distance — puis « Autour de moi » resserre le rayon.</p>
     </div>
     <form class="rech" id="formRecherche" autocomplete="off">
       <div class="rech-ligne">
@@ -296,12 +298,6 @@ async function rendreCatalogue(params) {
           <select name="type">
             <option value="tout">Tous les types</option>
             ${TYPES.map(t => `<option value="${t}" ${q.type === t ? 'selected' : ''}>${t}</option>`).join('')}
-          </select>
-        </label>
-        <label class="filtre">Pays
-          <select name="pays">
-            <option value="">Tous les pays</option>
-            ${PAYS.map(p => `<option value="${p}" ${q.pays === p ? 'selected' : ''}>${p}</option>`).join('')}
           </select>
         </label>
         <label class="filtre">Ville
@@ -582,7 +578,7 @@ function afficherResultats(c, res, q) {
   zone.innerHTML = res.map((b, i) => `
     <article class="bien-carte ${i === 0 && !q.q ? 'bien-carte--vedette' : ''}" data-bien="${b.id}" tabindex="0" role="link" aria-label="${esc(b.titre)}">
       <div class="bien-visuel">
-        <img src="${img(b.couverture, i === 0 && !q.q ? 1800 : 900)}" alt="" loading="${i < 3 ? 'eager' : 'lazy'}" decoding="async">
+        <img src="${img(b.couverture, i === 0 && !q.q ? 1800 : 900)}" alt="${esc(b.titre)} — ${esc(b.quartier)}, ${esc(b.ville)}" loading="${i < 3 ? 'eager' : 'lazy'}" decoding="async">
         <span class="bien-badge">${esc(b.badge)}</span>
         <span class="bien-transac">${b.transaction === 'location' ? 'Location' : 'Vente'}</span>
         <span class="bien-distance">${b.distance != null ? PAR_KM(b.distance) : ''}</span>
@@ -751,7 +747,7 @@ function majMarqueurs(res) {
       .addTo(etat.map)
       .bindPopup(`
         <a class="pop" href="#/bien/${b.id}">
-          <img src="${img(b.couverture, 560)}" alt="">
+          <img src="${img(b.couverture, 560)}" alt="${esc(b.titre)} — ${esc(b.quartier)}, ${esc(b.ville)}">
           <b>${esc(b.titre)}</b>
           <span>${esc(b.ville)} · ${b.surface} m² · ${b.chambres} ch.</span>
           <em>${PRIX(b)}</em>
@@ -784,7 +780,7 @@ function rendreFiche(b) {
           <button class="gal-nav gal-suis" data-gal="1" aria-label="Photo suivante">→</button>
         </div>
         <div class="gal-vignettes">
-          ${photos.slice(1, 5).map((p, i) => `<button data-vignette="${i + 1}" aria-label="Photo ${i + 2}"><img src="${img(p, 400)}" alt="" loading="lazy"></button>`).join('')}
+          ${photos.slice(1, 5).map((p, i) => `<button data-vignette="${i + 1}" aria-label="Photo ${i + 2}"><img src="${img(p, 400)}" alt="Photo ${i + 2} de ${esc(b.titre)}" loading="lazy"></button>`).join('')}
           <button class="gal-tout" id="galTout">Toutes les photos <span>${photos.length}</span></button>
         </div>
       </div>
@@ -874,11 +870,11 @@ function rendreFiche(b) {
         <div class="sim-grille">
           ${BIENS.filter(x => x.id !== b.id && (x.ville === b.ville || x.type === b.type)).slice(0, 3).map(x => `
             <a class="sim-carte" href="#/bien/${x.id}">
-              <img src="${img(x.couverture, 700)}" alt="" loading="lazy">
+              <img src="${img(x.couverture, 700)}" alt="${esc(x.titre)} — ${esc(x.ville)}" loading="lazy">
               <div><b>${esc(x.titre)}</b><span>${esc(x.ville)} · ${x.surface} m²</span><em>${PRIX(x)}</em></div>
             </a>`).join('') || BIENS.filter(x => x.id !== b.id).slice(0, 3).map(x => `
             <a class="sim-carte" href="#/bien/${x.id}">
-              <img src="${img(x.couverture, 700)}" alt="" loading="lazy">
+              <img src="${img(x.couverture, 700)}" alt="${esc(x.titre)} — ${esc(x.ville)}" loading="lazy">
               <div><b>${esc(x.titre)}</b><span>${esc(x.ville)} · ${x.surface} m²</span><em>${PRIX(x)}</em></div>
             </a>`).join('')}
         </div>
@@ -980,7 +976,7 @@ function rendreJournal() {
     <div class="j-liste">
       ${ARTICLES.map((a, i) => `
         <a class="j-carte ${i === 0 ? 'j-carte--une' : ''}" href="#/article/${a.id}">
-          <img src="${img(a.image, i === 0 ? 1600 : 900)}" alt="" loading="${i < 2 ? 'eager' : 'lazy'}">
+          <img src="${img(a.image, i === 0 ? 1600 : 900)}" alt="${esc(a.titre)}" loading="${i < 2 ? 'eager' : 'lazy'}">
           <div class="j-corps">
             <p class="j-rub"><span>${esc(a.rubrique)}</span> · ${a.lecture} min</p>
             <h2>${esc(a.titre)}</h2>
@@ -1005,7 +1001,7 @@ function rendreArticle(a) {
       <h1>${esc(a.titre)}</h1>
       <p class="article-chapeau">${esc(a.chapeau)}</p>
       <div class="article-meta"><span>${esc(a.auteur)}</span><span>${new Date(a.date).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })}</span></div>
-      <img class="article-image" src="${img(a.image, 1800)}" alt="">
+      <img class="article-image" src="${img(a.image, 1800)}" alt="${esc(a.titre)}">
       <div class="article-corps">
         ${a.corps.map((p, i) => `<p ${i === 0 ? 'class="lettrine"' : ''}>${esc(p)}</p>`).join('')}
         <blockquote>Le plan ne ment pas. Il dit la lumière, les circulations, la place de chacun.</blockquote>
@@ -1019,11 +1015,72 @@ function rendreArticle(a) {
 }
 
 /* ══════════════════════════════════════════════════════════════════
+   MENTIONS LÉGALES · CONFIDENTIALITÉ · HONORAIRES
+   ══════════════════════════════════════════════════════════════════ */
+function rendreMentions() {
+  const c = preparerVue('vue-mentions');
+  document.title = 'Mentions légales — HAVRE';
+  const m = AGENCE.mentions;
+  const ligne = (k, v) => `<div class="ml-ligne"><dt>${esc(k)}</dt><dd>${esc(v)}</dd></div>`;
+  c.innerHTML = `
+    ${enteteVue({ actif: '', retour: '#accueil' })}
+    <div class="j-intro">
+      <p class="surtitre-v">Informations légales</p>
+      <h1 class="cat-titre">Mentions <em>légales.</em></h1>
+      <p class="cat-sous">Informations relatives à l'éditeur du site, à vos données personnelles et aux honoraires pratiqués. Les champs entre crochets sont à compléter par l'agence.</p>
+    </div>
+    <div class="ml-corps">
+      <section>
+        <h2>Éditeur du site</h2>
+        <dl>
+          ${ligne('Raison sociale', m.raisonSociale)}
+          ${ligne('Forme juridique', m.formeJuridique)}
+          ${ligne('Siège social', m.adresse)}
+          ${ligne('SIRET / RCS', m.siret)}
+          ${ligne('TVA intracommunautaire', m.tva)}
+          ${ligne('Carte professionnelle', m.cartePro)}
+          ${ligne('Directeur de la publication', m.editeur)}
+        </dl>
+      </section>
+      <section>
+        <h2>Hébergement</h2>
+        <dl>${ligne('Hébergeur', m.hebergeur)}</dl>
+      </section>
+      <section>
+        <h2>Données personnelles</h2>
+        <p>Les formulaires du site (contact, alerte e-mail, demande de visite) collectent votre nom, votre adresse e-mail et votre message. Ces informations servent uniquement à répondre à votre demande et ne sont ni revendues ni cédées à des tiers.</p>
+        <p>Responsable du traitement : ${esc(AGENCE.contact.nom)} — ${esc(AGENCE.contact.email)}. Vous pouvez demander l'accès, la rectification ou la suppression de vos données à cette adresse. Les demandes sont conservées le temps du suivi commercial, puis supprimées.</p>
+        <p>Le site n'utilise aucun cookie publicitaire ni traceur tiers. La carte est fournie par OpenStreetMap (Leaflet) et les photographies par Unsplash.</p>
+        <p class="ml-alerte"><b>À COMPLÉTER :</b> nom du responsable du traitement, adresse e-mail de contact, durée de conservation précise.</p>
+      </section>
+      <section>
+        <h2>Honoraires</h2>
+        <p>Les prix affichés sur les biens à la vente sont indiqués hors honoraires ; le montant et la répartition des honoraires sont précisés sur chaque mandat et dans l'annonce. Les loyers sont indiqués charges comprises.</p>
+        <p class="ml-alerte"><b>À COMPLÉTER :</b> barème d'honoraires (pourcentage ou forfait), part acquéreur / vendeur, honoraires de location (visite, dossier, état des lieux).</p>
+      </section>
+      <section>
+        <h2>Contact</h2>
+        <dl>
+          ${ligne('Agence', AGENCE.nom + ' — ' + AGENCE.baseline)}
+          ${ligne('Villes', AGENCE.villes)}
+          ${ligne('Téléphone', AGENCE.tel + ' (' + AGENCE.telNote + ')')}
+          ${ligne('Contact', AGENCE.contact.nom)}
+          ${ligne('Adresse', AGENCE.contact.adresse)}
+          ${ligne('E-mail', AGENCE.contact.email)}
+        </dl>
+      </section>
+      <p class="ml-retour"><a class="v-fil" href="#/catalogue">← Retour au catalogue</a></p>
+    </div>
+    ${piedVue()}`;
+  c.scrollTop = 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════
    RECONSTRUCTION DE PLAN
    ══════════════════════════════════════════════════════════════════ */
 function rendreReconstruction() {
   const c = preparerVue('vue-reconstruire');
-  document.title = 'Plan → 3D — HAVRE';
+  document.title = 'Plan en 3D — HAVRE';
   c.innerHTML = `
     ${enteteVue({ actif: 'reconstruire', retour: '#accueil' })}
     <div class="r-intro">
@@ -1305,7 +1362,7 @@ export function demarrer() {
   if (vitrine) {
     vitrine.innerHTML = BIENS.slice(0, 3).map(b => `
       <a class="vitrine-carte" href="#/bien/${b.id}">
-        <img src="${img(b.couverture, 900)}" alt="" loading="lazy">
+        <img src="${img(b.couverture, 900)}" alt="${esc(b.titre)} — ${esc(b.quartier)}, ${esc(b.ville)}" loading="lazy">
         <div class="vitrine-corps">
           <p>${esc(b.quartier)} · ${esc(b.ville)}</p>
           <h3>${esc(b.titre)}</h3>
@@ -1318,7 +1375,7 @@ export function demarrer() {
   if (jAccueil) {
     jAccueil.innerHTML = ARTICLES.slice(0, 3).map(a => `
       <a class="j-carte j-carte--accueil" href="#/article/${a.id}">
-        <img src="${img(a.image, 800)}" alt="" loading="lazy">
+        <img src="${img(a.image, 800)}" alt="${esc(a.titre)}" loading="lazy">
         <div class="j-corps">
           <p class="j-rub"><span>${esc(a.rubrique)}</span> · ${a.lecture} min</p>
           <h2>${esc(a.titre)}</h2>

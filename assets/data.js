@@ -48,6 +48,37 @@ const IMG = {
   ]
 };
 
+/* ══════════════════════════════════════════════════════════════════
+   IDENTITÉ DE L'AGENCE — source unique
+   À COMPLÉTER par l'agence : raison sociale, adresse, SIRET, carte
+   professionnelle, éditeur du site, hébergeur. Ne rien inventer.
+   ══════════════════════════════════════════════════════════════════ */
+export const AGENCE = {
+  nom: 'Havre',
+  baseline: 'Agence immobilière indépendante',
+  villes: 'Paris, Biarritz, Hossegor',
+  creee: 2017,
+  /* coordonnées — numéro de test, à remplacer avant mise en ligne réelle */
+  tel: '+33 1 84 80 20 20',
+  telHref: 'tel:+33184802020',
+  telNote: 'à vérifier : numéro de démonstration',
+  contact: {
+    nom: '[À COMPLÉTER : nom du contact]',
+    adresse: '[À COMPLÉTER : adresse postale]',
+    email: '[À COMPLÉTER : adresse e-mail]'
+  },
+  mentions: {
+    raisonSociale: '[À COMPLÉTER : raison sociale]',
+    formeJuridique: '[À COMPLÉTER : forme juridique et capital]',
+    adresse: '[À COMPLÉTER : adresse du siège social]',
+    siret: '[À COMPLÉTER : SIRET / RCS]',
+    tva: '[À COMPLÉTER : numéro de TVA intracommunautaire]',
+    cartePro: '[À COMPLÉTER : carte professionnelle (CPI), délivrée par la CCI]',
+    editeur: '[À COMPLÉTER : éditeur et directeur de la publication]',
+    hebergeur: '[À COMPLÉTER : hébergeur — Vercel Inc., 340 S Lemon Ave #4133, Walnut, CA 91789, États-Unis]'
+  }
+};
+
 export const img = (id, w = 1600) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=80`;
 
@@ -629,6 +660,7 @@ export const BIENS = A.map((b, i) => {
     ...b,
     photos,
     couverture: photos[0],
+    photo: img(photos[0], 400),
     plan,
     agent: etoiles(i),
     prixM2, loyerM2,
