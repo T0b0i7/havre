@@ -37,6 +37,10 @@ python3 serve_lan.py 8080
 # http://127.0.0.1:8080
 ```
 
+## En ligne
+
+**https://havre-olive.vercel.app**
+
 ## Déploiement
 
 Site statique : aucun build. Sur Vercel, le dossier racine est publié directement.
