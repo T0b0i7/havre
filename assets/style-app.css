@@ -1314,3 +1314,61 @@ html.vue-ouverte{ overflow:hidden; }
 /* ── le chrome de la landing doit passer au-dessus des vues ── */
 body.vue-ouverte .menu-mobile{ z-index:85; }
 body.vue-ouverte .voile{ z-index:95; }
+
+/* ══════════════════════════════════════════════════════════════════
+   RÉVÉLATIONS AU DÉFILEMENT
+   Chaque section choisit sa mise en scène (voir preparerRevelations
+   dans index.html) : montée, glissement, voile, ligne, compteur.
+   Le style est partagé entre la landing et les vues.
+   ══════════════════════════════════════════════════════════════════ */
+.rv{
+  opacity:0; transform:translateY(26px);
+  transition:
+    opacity .85s cubic-bezier(.2,.7,.2,1),
+    transform 1s cubic-bezier(.2,.7,.2,1),
+    clip-path 1s cubic-bezier(.2,.7,.2,1);
+  transition-delay:var(--rv-d, 0ms);
+  will-change:opacity, transform;
+}
+.rv--gauche{ transform:translateX(-34px); }
+.rv--droite{ transform:translateX(34px); }
+.rv--voile{ transform:translateY(14px) scale(.965); }
+.rv--ligne{
+  opacity:1; transform:none;
+  clip-path:inset(0 0 110% 0);
+}
+.rv.est-vu{
+  opacity:1; transform:none; clip-path:inset(0 0 0 0);
+  will-change:auto;
+}
+/* le compteur hérite de la montée, sans effet sur les chiffres */
+.chiffre.rv{ transform:translateY(18px); }
+
+/* entrée du hero : CSS pur, jouée dès l'analyse du document */
+@keyframes hero-entree{
+  from{ opacity:0; transform:translateY(22px); }
+  to{ opacity:1; transform:none; }
+}
+#accueil .hero-contenu > *,
+#accueil .hero-pied > *{
+  animation:hero-entree .95s cubic-bezier(.2,.7,.2,1) both;
+}
+#accueil .hero-contenu > *:nth-child(1){ animation-delay:.10s; }
+#accueil .hero-contenu > *:nth-child(2){ animation-delay:.20s; }
+#accueil .hero-contenu > *:nth-child(3){ animation-delay:.34s; }
+#accueil .hero-contenu > *:nth-child(4){ animation-delay:.44s; }
+#accueil .hero-pied > *:nth-child(1){ animation-delay:.58s; }
+#accueil .hero-pied > *:nth-child(2){ animation-delay:.66s; }
+
+/* sur écran étroit, un glissement latéral déborderait : on monte */
+@media (max-width: 560px){
+  .rv--gauche, .rv--droite{ transform:translateY(22px); }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .rv, .rv--gauche, .rv--droite, .rv--voile, .rv--ligne{
+    opacity:1 !important; transform:none !important; clip-path:none !important;
+    transition:none !important;
+  }
+  #accueil .hero-contenu > *, #accueil .hero-pied > *{ animation:none !important; }
+}

@@ -541,9 +541,9 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
       </div>
       <div class="chiffres">
         <div class="chiffre"><strong data-compte="biens">28</strong><span>adresses disponibles aujourd'hui</span></div>
-        <div class="chiffre"><strong>9 ans</strong><span>sur le littoral atlantique</span></div>
-        <div class="chiffre"><strong>38 jours</strong><span>délai médian entre la visite et l'offre</span></div>
-        <div class="chiffre"><strong>1 400</strong><span>visites accompagnées depuis 2017</span></div>
+        <div class="chiffre"><strong data-compteur="9" data-suffixe=" ans">9 ans</strong><span>sur le littoral atlantique</span></div>
+        <div class="chiffre"><strong data-compteur="38" data-suffixe=" jours">38 jours</strong><span>délai médian entre la visite et l'offre</span></div>
+        <div class="chiffre"><strong data-compteur="1400">1 400</strong><span>visites accompagnées depuis 2017</span></div>
       </div>
       <div class="actions actions--gauche">
         <button class="bouton bouton--fantome" data-modale="estimation">Estimer un bien</button>
@@ -1459,6 +1459,169 @@ const AGENCE_TEL = { tel: '+33 1 84 80 20 20', href: 'tel:+33184802020' };
 document.querySelectorAll('a[data-tel]').forEach((a) => { a.textContent = AGENCE_TEL.tel; a.href = AGENCE_TEL.href; });
 document.querySelectorAll('[data-agence-tel]').forEach((el) => { el.textContent = AGENCE_TEL.tel; });
 
+/* ══════════════════════════════════════════════════════════════════
+   MISE EN SCÈNE AU DÉFILEMENT
+   Une partition par section : les textes montent, les cartes se
+   dévoilent, la citation se lève, les chiffres se comptent. Un seul
+   observateur, réutilisé à chaque rendu de vue.
+   ══════════════════════════════════════════════════════════════════ */
+const REVELES = new WeakSet();
+const EN_ATTENTE = new Set();
+let observateurRevelations = null;
+
+function revelerMaintenant(el){
+  if (!el.isConnected) { EN_ATTENTE.delete(el); return; }
+  if (el.dataset.rvVu === '1') return;
+  el.dataset.rvVu = '1';
+  EN_ATTENTE.delete(el);
+  el.classList.add('est-vu');
+  if (el.dataset.rvCompteur === '1') compter(el.querySelector('[data-compteur], [data-compte]') || el);
+  if (observateurRevelations) observateurRevelations.unobserve(el);
+  // une fois la scène jouée, on rend la main aux survols (transforms)
+  const delai = (parseFloat(el.style.getPropertyValue('--rv-d')) || 0) + 1250;
+  setTimeout(() => {
+    el.classList.remove('rv', 'rv--gauche', 'rv--droite', 'rv--voile', 'rv--ligne', 'est-vu');
+    el.style.removeProperty('--rv-d');
+  }, delai);
+}
+
+/* filet de sécurité : sur un appareil lent, l'IntersectionObserver peut
+   accuser du retard. On vérifie aussi les éléments au défilement. */
+function verifierVisibles(){
+  const bas = window.innerHeight * 0.98;
+  EN_ATTENTE.forEach((el) => {
+    if (!el.isConnected) { EN_ATTENTE.delete(el); return; }
+    const r = el.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0) return;
+    // déjà dépassé (saut d'ancre, défilement rapide) : on ne le cache pas
+    if (r.bottom <= 0) { revelerMaintenant(el); return; }
+    if (r.top < bas) revelerMaintenant(el);
+  });
+}
+let verificationPrevue = false;
+function planifierVerification(){
+  if (verificationPrevue) return;
+  verificationPrevue = true;
+  requestAnimationFrame(() => { verificationPrevue = false; verifierVisibles(); });
+}
+window.addEventListener('scroll', planifierVerification, { passive: true });
+document.addEventListener('scroll', planifierVerification, { passive: true, capture: true });
+window.addEventListener('resize', planifierVerification, { passive: true });
+
+function revelerGroupe(racine, selecteur, variante, pas = 80, maximum = 8){
+  let elements;
+  try { elements = racine.querySelectorAll(selecteur); } catch { return; }
+  const compteurs = new Map();
+  elements.forEach((el) => {
+    if (el.classList.contains('squelette') || el.classList.contains('champ--miel') || REVELES.has(el)) return;
+    const parent = el.parentElement || racine;
+    const n = compteurs.get(parent) || 0;
+    compteurs.set(parent, n + 1);
+    el.classList.add('rv');
+    if (variante !== 'monte') el.classList.add('rv--' + variante);
+    const delai = Math.min(n, maximum) * pas;
+    el.style.setProperty('--rv-d', delai + 'ms');
+    if (el.matches('[data-compteur], [data-compte]') ||
+        el.querySelector('[data-compteur], [data-compte]')) el.dataset.rvCompteur = '1';
+    REVELES.add(el);
+    EN_ATTENTE.add(el);
+    observateurRevelations.observe(el);
+  });
+}
+
+function preparerRevelations(){
+  if (!observateurRevelations) return;
+  const r = document;
+
+  /* ── accueil : une intention par section ── */
+  revelerGroupe(r, '#agence .agence-presentation .entete-bloc > *', 'monte', 95);
+  revelerGroupe(r, '#agence .equipe', 'droite', 0);
+  revelerGroupe(r, '#agence .agence-methode > *', 'monte', 95);
+  revelerGroupe(r, '#agence .chiffre', 'monte', 140, 3);
+  revelerGroupe(r, '#agence .actions', 'monte', 0);
+
+  revelerGroupe(r, '#processus .entete-bloc > *', 'monte', 100);
+  revelerGroupe(r, '#processus .etape', 'monte', 150, 3);
+
+  revelerGroupe(r, '#adresses .entete-bloc > *', 'monte', 100);
+  revelerGroupe(r, '#adresses .adresse', 'gauche', 90, 3);
+
+  revelerGroupe(r, '#catalogue-accueil .entete-bloc > *', 'monte', 100);
+  revelerGroupe(r, '#catalogue-accueil .plan3d', 'voile', 0);
+  revelerGroupe(r, '#catalogue-accueil .vitrine-carte', 'voile', 120, 3);
+  revelerGroupe(r, '#catalogue-accueil .actions', 'monte', 0);
+
+  revelerGroupe(r, '#journal .entete-bloc > *', 'monte', 100);
+  revelerGroupe(r, '#journal .j-carte', 'voile', 120, 3);
+  revelerGroupe(r, '#journal .actions', 'monte', 0);
+
+  revelerGroupe(r, '#scene .citation > *', 'ligne', 170, 3);
+
+  revelerGroupe(r, '#contact .entete-bloc > *', 'monte', 100);
+  revelerGroupe(r, '#contact .champ', 'monte', 70, 5);
+  revelerGroupe(r, '#contact .form-actions', 'monte', 0);
+
+  /* ── vues : le rythme suit la nature du contenu ── */
+  revelerGroupe(r, '.vue .cat-intro > *, .vue .j-intro > *', 'monte', 90, 3);
+  revelerGroupe(r, '.vue .rech', 'monte', 0);
+  revelerGroupe(r, '.vue .bien-carte', 'voile', 70, 8);
+  revelerGroupe(r, '.vue .fiche-galerie', 'voile', 0);
+  revelerGroupe(r, '.vue .fiche-chiffres > div', 'monte', 55, 8);
+  revelerGroupe(r, '.vue .fiche-texte > *', 'monte', 90, 6);
+  revelerGroupe(r, '.vue .fiche-contact', 'droite', 0);
+  revelerGroupe(r, '.vue .fp-tete > *', 'monte', 95, 3);
+  revelerGroupe(r, '.vue .fp-infos > *', 'monte', 85, 4);
+  revelerGroupe(r, '.vue .j-carte', 'voile', 85, 5);
+  revelerGroupe(r, '.vue .article-image', 'voile', 0);
+  revelerGroupe(r, '.vue .article-corps > *', 'monte', 65, 6);
+  revelerGroupe(r, '.vue .ml-corps > section', 'monte', 90, 5);
+
+  /* les éléments déjà à l'écran au moment du rendu partent sans attendre */
+  planifierVerification();
+}
+
+function compter(el){
+  if (el.dataset.rvCompte === '1') return;
+  el.dataset.rvCompte = '1';
+  const brut = (el.dataset.compteur || el.textContent || '').replace(/[^\d]/g, '');
+  const cible = parseInt(brut, 10);
+  const suffixe = el.dataset.suffixe || '';
+  if (!Number.isFinite(cible)) return;
+  const rendre = (n) => { el.textContent = new Intl.NumberFormat('fr-FR').format(n) + suffixe; };
+  if (MOUVEMENT_REDUIT) { rendre(cible); return; }
+  const debut = performance.now();
+  const duree = 1150;
+  const pas = (maintenant) => {
+    const t = Math.min(1, (maintenant - debut) / duree);
+    rendre(Math.round(cible * (1 - Math.pow(1 - t, 3))));
+    if (t < 1) requestAnimationFrame(pas);
+  };
+  rendre(0);
+  requestAnimationFrame(pas);
+}
+
+function demarrerRevelations(){
+  if (observateurRevelations) return;
+  observateurRevelations = new IntersectionObserver((entrees) => {
+    entrees.forEach((entree) => {
+      if (entree.isIntersecting) revelerMaintenant(entree.target);
+    });
+  }, { threshold: 0.01, rootMargin: '0px 0px -2% 0px' });
+
+  preparerRevelations();
+
+  /* les vues et les listes sont rendues après coup : on repasse */
+  let minuteur = 0;
+  const surveiller = new MutationObserver(() => {
+    clearTimeout(minuteur);
+    minuteur = setTimeout(preparerRevelations, 50);
+  });
+  document.querySelectorAll('#app-vue, main').forEach((racine) => {
+    if (racine) surveiller.observe(racine, { childList: true, subtree: true });
+  });
+}
+demarrerRevelations();
+
 /* ancrages */
 document.querySelectorAll('a[href^="#"]').forEach((a) => {
   a.addEventListener('click', (e) => {
@@ -1576,7 +1739,8 @@ window.__havre = {
   renderer, scene, camera, composer, bloom, lenis,
   get etat() { return etat; },
   variante(bien) { return BIENS.find(b => b.id === bien); },
-  ouvrirFiche, ouvrirMenu, fermerModale, ouvrirModale
+  ouvrirFiche, ouvrirMenu, fermerModale, ouvrirModale,
+  reveler: preparerRevelations
 };
 </script>
 </body>
