@@ -6,6 +6,7 @@
      · le détecteur de plans (image ou SVG importé)
    ══════════════════════════════════════════════════════════════════ */
 import * as THREE from 'three';
+import { identiteDe, creerArbre, creerPersonnage, creerEquipement } from './ambiance.js';
 
 const H_MUR = 2.75;
 const R_JEU = 0.28;
@@ -100,14 +101,30 @@ function texEnduit() {
     }
   });
 }
-function texCiel3D() {
+function texCiel3D(nuit = false) {
   return toile(8, 512, (ctx, w, h) => {
     const g = ctx.createLinearGradient(0, 0, 0, h);
-    g.addColorStop(0, '#EAF4FF');
-    g.addColorStop(0.45, '#DCEBFF');
-    g.addColorStop(0.75, '#CFE1FA');
-    g.addColorStop(1, '#C3D6F2');
+    if (nuit) {
+      g.addColorStop(0, '#050B18');
+      g.addColorStop(0.42, '#0B1730');
+      g.addColorStop(0.72, '#14243E');
+      g.addColorStop(1, '#263A55');
+    } else {
+      g.addColorStop(0, '#EAF4FF');
+      g.addColorStop(0.45, '#DCEBFF');
+      g.addColorStop(0.75, '#CFE1FA');
+      g.addColorStop(1, '#C3D6F2');
+    }
     ctx.fillStyle = g; ctx.fillRect(0, 0, w, h);
+    if (nuit) {
+      const r = rng(77);
+      for (let i = 0; i < 90; i++) {
+        const a = 0.25 + r() * 0.65;
+        ctx.fillStyle = `rgba(255,248,232,${a})`;
+        const s = r() < 0.12 ? 2 : 1;
+        ctx.fillRect(r() * w, r() * h * 0.72, s, s);
+      }
+    }
   });
 }
 
@@ -241,32 +258,50 @@ export function planSVG(plan, { niveau = 0, marge = 1.4, largeur = 1000, compact
 /* ══════════════════════════════════════════════════════════════════
    MAQUETTE 3D
    ══════════════════════════════════════════════════════════════════ */
-function materiaux() {
+function materiaux(id) {
+  const P = id.palette;
   const chantier = (o) => new THREE.MeshStandardMaterial(o);
+  const tissuMat = (i, fallback) => chantier({ color: P.tissus[i] ?? fallback, roughness: 0.95 });
+  const tapis = (i) => chantier({ color: P.tapis[i] ?? 0xC8B79D, roughness: 1 });
+  const solExt = (() => {
+    if (id.nature.terrain === 'neige') return chantier({ color: 0xE8EDF2, roughness: 0.96 });
+    if (id.nature.terrain === 'sable') return chantier({ map: texSable('#D8C6A4'), roughness: 1 });
+    if (id.nature.terrain === 'pavage') return chantier({ map: texCarrelage('#D8D1C4', '#C1B9AB', 3), roughness: 0.92 });
+    if (id.nature.terrain === 'terre') return chantier({ map: texSable('#B99B77'), roughness: 1 });
+    return chantier({ map: texSable('#8FA27E'), roughness: 1 });
+  })();
   return {
-    enduit: chantier({ map: texEnduit(), color: 0xFDFBF6, roughness: 0.94 }),
-    enduitExt: chantier({ map: texEnduit(), color: 0xF2EDE4, roughness: 0.96 }),
-    murCoupe: chantier({ color: 0x2B3444, roughness: 0.8 }),
-    bois: chantier({ map: texBois('#CDA97C', '#B08A5B'), roughness: 0.55 }),
-    boisClair: chantier({ map: texBois('#E0C79E', '#C9AC7C'), roughness: 0.5 }),
-    parquet: chantier({ map: texBois('#C7A377', '#A9855A'), roughness: 0.52 }),
-    pierre: chantier({ map: texCarrelage('#E7E2D8', '#D3CCBE', 3), roughness: 0.72 }),
+    enduit: chantier({ map: texEnduit(), color: P.mur, roughness: 0.94 }),
+    enduitExt: chantier({ map: texEnduit(), color: P.ext, roughness: 0.96 }),
+    murCoupe: chantier({ color: 0x232D3E, roughness: 0.8 }),
+    bois: chantier({ map: texBois(P.bois[0], P.bois[1]), roughness: 0.56 }),
+    boisClair: chantier({ map: texBois(P.bois[0], P.bois[1]), color: 0xF2E4CD, roughness: 0.52 }),
+    parquet: chantier({ map: texBois(P.parquet[0], P.parquet[1]), roughness: 0.52 }),
+    pierre: chantier({ map: texCarrelage(P.pierre[0], P.pierre[1], 3), roughness: 0.72 }),
+    marbre: chantier({ map: texCarrelage('#F0ECE3', '#D7D0C4', 2), roughness: 0.34 }),
     carreaux: chantier({ map: texCarrelage('#E5E8E7', '#C9CFCE', 5), roughness: 0.5 }),
     beton: chantier({ map: texSable('#CFC9BE'), roughness: 0.88 }),
-    tapis: chantier({ color: 0xCFC2AB, roughness: 1 }),
-    tissu: chantier({ color: 0xB9B2A4, roughness: 0.95 }),
-    tissuNuit: chantier({ color: 0x8E9AAE, roughness: 0.95 }),
+    tapis: tapis(0),
+    tissu: tissuMat(0),
+    tissuNuit: tissuMat(1, 0x8E9AAE),
     terracotta: chantier({ color: 0xB87556, roughness: 0.9 }),
-    vegetal: chantier({ color: 0x5D7A52, roughness: 0.95 }),
-    vegetalSombre: chantier({ color: 0x445E3C, roughness: 0.95 }),
+    vegetal: chantier({ color: id.style === 'chalet' ? 0x3F5F4A : 0x5D7A52, roughness: 0.95 }),
+    vegetalSombre: chantier({ color: id.style === 'tropique' ? 0x2C6B55 : 0x445E3C, roughness: 0.95 }),
+    vegetalClair: chantier({ color: id.style === 'provencal' ? 0x8C9874 : id.style === 'mediterraneen' ? 0x7F8F72 : 0x78946B, roughness: 0.95 }),
+    tronc: chantier({ color: id.style === 'chalet' ? 0x5A402C : 0x6E5B45, roughness: 1 }),
+    neige: chantier({ color: 0xF2F6F8, roughness: 0.92 }),
     metal: chantier({ color: 0x8B8F94, roughness: 0.32, metalness: 0.85 }),
-    metalNoir: chantier({ color: 0x2A2C2E, roughness: 0.4, metalness: 0.6 }),
+    metalNoir: chantier({ color: id.style === 'penthouse' ? 0x14181B : 0x2A2C2E, roughness: 0.4, metalness: 0.6 }),
+    menuiserie: chantier({ color: P.menuiserie, roughness: 0.5, metalness: id.style === 'contemporain' || id.style === 'urbain' ? 0.3 : 0 }),
     verre: new THREE.MeshStandardMaterial({ color: 0xBFD6EA, roughness: 0.08, metalness: 0.1, transparent: true, opacity: 0.26, side: THREE.DoubleSide }),
-    eau: new THREE.MeshStandardMaterial({ color: 0x8FB9CE, roughness: 0.05, metalness: 0.3, transparent: true, opacity: 0.75 }),
+    eau: new THREE.MeshStandardMaterial({ color: 0x8FB9CE, roughness: 0.05, metalness: 0.3, transparent: true, opacity: 0.78 }),
     blanc: chantier({ color: 0xF7F4ED, roughness: 0.5 }),
     lin: chantier({ color: 0xEFE9DE, roughness: 0.95 }),
     terre: chantier({ color: 0x6E5B45, roughness: 1 }),
-    pelouse: chantier({ color: 0x93A987, roughness: 1 }),
+    pelouse: solExt,
+    solExt,
+    sable: chantier({ map: texSable('#D8C6A4'), roughness: 1 }),
+    pavage: chantier({ map: texCarrelage('#D8D1C4', '#C1B9AB', 3), roughness: 0.92 }),
     dalle: chantier({ map: texCarrelage('#DAD5CB', '#C3BDB1', 2), roughness: 0.9 })
   };
 }
@@ -287,12 +322,13 @@ function cylindre(rt, rb, h, seg, mat, x = 0, y = 0, z = 0) {
 }
 
 /* ── mobilier par pièce ── */
-function meubler(piece, M) {
+function meubler(piece, M, identite) {
   const g = new THREE.Group();
   const { w, d, type } = piece;
   const cx = piece.x + w / 2, cz = piece.z + d / 2;
   g.position.set(cx, 0, cz);
   const r = rng(hashTexte(piece.type + piece.x + piece.z));
+  const accent = new THREE.MeshStandardMaterial({ color: identite?.palette?.accent ?? 0x2A55C4, roughness: 0.9 });
   const dispo = type !== 'escalier' && type !== 'palier' && type !== 'terrasse';
   if (!dispo) {
     if (type === 'escalier' || type === 'palier') {
@@ -318,6 +354,8 @@ function meubler(piece, M) {
     const dossier = boite(long, 0.44, 0.16, M.tissu, 0, 0.62, -cote / 2 + 0.08);
     const accoudoir = (s) => boite(0.16, 0.3, cote, M.tissu, s * (long / 2 - 0.08), 0.55, 0);
     g.add(sofa, dossier); g.add(accoudoir(-1), accoudoir(1));
+    // coussins d'accent
+    for (const s of [-0.28, 0.26]) g.add(boite(0.32, 0.32, 0.12, accent, s * (long - 0.5), 0.52, -cote / 2 + 0.18));
     g.add(boite(long * 0.6, 0.06, 0.5, M.tapis, 0, 0.03, cote / 2 + 0.55));
     g.add(boite(1.05, 0.34, 0.6, M.bois, 0, 0.17, cote / 2 + 0.55));
     g.add(boite(0.9, 0.02, 0.45, M.marbre || M.blanc, 0, 0.35, cote / 2 + 0.55));
@@ -325,10 +363,6 @@ function meubler(piece, M) {
       g.add(cylindre(0.06, 0.06, 0.7, 8, M.vegetalSombre, -long / 2 + 0.2 + i * 0.3, 0.9, -cote / 2 + 0.05));
       g.add(cylindre(0.22, 0.14, 0.24, 8, M.terre, -long / 2 + 0.2 + i * 0.3, 0.55, -cote / 2 + 0.05));
     }
-    // meuble TV + cadre
-    const tvZ = -Math.min(d, w) / 2 + 0.25;
-    g.add(boite(Math.min(2.2, long), 0.45, 0.34, M.boisClair, 0, 0.22, tvZ));
-    g.add(boite(1.2, 0.7, 0.04, M.metalNoir, 0, 3.0, -Math.min(d, w) / 2 + 0.02));
     // suspension
     g.add(cylindre(0.22, 0.28, 0.2, 12, M.blanc, 0, 2.25, 0));
     g.add(cylindre(0.008, 0.008, 0.4, 4, M.metalNoir, 0, 2.55, 0));
@@ -405,9 +439,52 @@ function meubler(piece, M) {
 }
 
 /* ══════════════════════════════════════════════════════════════════
+   DÉTAILS D'ARCHITECTURE LIÉS À L'IDENTITÉ DU BIEN
+   ══════════════════════════════════════════════════════════════════ */
+function detailsStyle(g, niveau, M, identite, hauteur) {
+  const d = identite.details || [];
+  const sejour = niveau.pieces.find(p => p.type === 'sejour') || niveau.pieces.find(p => p.w * p.d > 12);
+  if (d.includes('moulures')) {
+    niveau.pieces.forEach(p => {
+      if (p.w < 1.6 || p.d < 1.6) return;
+      const y = hauteur - 0.2;
+      g.add(boite(p.w - 0.06, 0.1, 0.045, M.blanc, p.x + p.w / 2, y, p.z + 0.05));
+      g.add(boite(p.w - 0.06, 0.1, 0.045, M.blanc, p.x + p.w / 2, y, p.z + p.d - 0.05));
+      g.add(boite(0.045, 0.1, p.d - 0.06, M.blanc, p.x + 0.05, y, p.z + p.d / 2));
+      g.add(boite(0.045, 0.1, p.d - 0.06, M.blanc, p.x + p.w - 0.05, y, p.z + p.d / 2));
+    });
+  }
+  if (d.includes('poutres')) {
+    const n = Math.max(2, Math.round(niveau.largeur / 2.6));
+    for (let i = 0; i < n; i++) {
+      const x = (i + 0.5) * (niveau.largeur / n);
+      g.add(boite(0.16, 0.26, niveau.profondeur - 0.4, M.bois, x, hauteur - 0.15, niveau.profondeur / 2));
+    }
+  }
+  if (d.includes('cheminee') && sejour) {
+    const p = sejour;
+    const cz = p.z + p.d * 0.52;
+    const f = new THREE.Group();
+    f.position.set(p.x + 0.3, 0, cz);
+    f.add(boite(0.52, 1.35, Math.min(1.7, p.d * 0.46), M.pierre, 0, 0.67, 0));
+    f.add(boite(0.06, 0.72, Math.min(1.05, p.d * 0.3), M.metalNoir, 0.28, 0.48, 0));
+    f.add(boite(0.16, 0.1, Math.min(1.45, p.d * 0.4), M.marbre, 0.36, 1.36, 0));
+    f.add(boite(0.5, 0.06, Math.min(1.5, p.d * 0.42), M.pierre, 0.18, 0.03, 0));
+    f.children[1].userData.cheminee = true;
+    g.add(f);
+  }
+  if (d.includes('lambris') && sejour) {
+    const p = sejour;
+    for (let i = 0; i < 7; i++) {
+      g.add(boite(Math.min(3.2, p.w * 0.55), 0.16, 0.035, M.boisClair, p.x + p.w * 0.28, 0.2 + i * 0.18, p.z + 0.08));
+    }
+  }
+}
+
+/* ══════════════════════════════════════════════════════════════════
    CONSTRUCTION D'UN NIVEAU
    ══════════════════════════════════════════════════════════════════ */
-function construireNiveau(niveau, M, { hauteur = H_MUR, ext = true, collisions = [] } = {}) {
+function construireNiveau(niveau, M, { hauteur = H_MUR, ext = true, collisions = [], identite = null } = {}) {
   const g = new THREE.Group();
   const W = niveau.largeur, D = niveau.profondeur;
 
@@ -486,20 +563,21 @@ function construireNiveau(niveau, M, { hauteur = H_MUR, ext = true, collisions =
         // vitrage
         const v = new THREE.Mesh(new THREE.BoxGeometry(w - 0.06, hTrou - 0.06, 0.03), M.verre);
         v.position.set(x, o.allege + hTrou / 2, 0);
+        v.userData.fenetre = true;
         grp.add(v);
         // menuiserie
         const c = 0.05;
-        grp.add(boite(w, c, m.ep * 0.55, M.metalNoir, x, o.allege + hTrou / 2, 0));
-        grp.add(boite(c, hTrou, m.ep * 0.55, M.metalNoir, x, o.allege + hTrou / 2, 0));
-        grp.add(boite(w, c, m.ep * 0.6, M.blanc, x, o.allege + 0.02, 0));
-        grp.add(boite(w, c, m.ep * 0.6, M.blanc, x, o.allege + hTrou, 0));
+        grp.add(boite(w, c, m.ep * 0.55, M.menuiserie, x, o.allege + hTrou / 2, 0));
+        grp.add(boite(c, hTrou, m.ep * 0.55, M.menuiserie, x, o.allege + hTrou / 2, 0));
+        grp.add(boite(w, c, m.ep * 0.6, M.menuiserie, x, o.allege + 0.02, 0));
+        grp.add(boite(w, c, m.ep * 0.6, M.menuiserie, x, o.allege + hTrou, 0));
         // tablette intérieure
-        grp.add(boite(w + 0.1, 0.035, m.ep + 0.12, M.blanc, x, o.allege + 0.02, 0));
+        grp.add(boite(w + 0.1, 0.035, m.ep + 0.12, M.marbre, x, o.allege + 0.02, 0));
       } else {
         // encadrement de porte
-        grp.add(boite(0.06, o.haut, m.ep + 0.02, M.blanc, x - w / 2 + 0.02, o.haut / 2, 0));
-        grp.add(boite(0.06, o.haut, m.ep + 0.02, M.blanc, x + w / 2 - 0.02, o.haut / 2, 0));
-        grp.add(boite(w, 0.06, m.ep + 0.02, M.blanc, x, o.haut - 0.02, 0));
+        grp.add(boite(0.06, o.haut, m.ep + 0.02, M.menuiserie, x - w / 2 + 0.02, o.haut / 2, 0));
+        grp.add(boite(0.06, o.haut, m.ep + 0.02, M.menuiserie, x + w / 2 - 0.02, o.haut / 2, 0));
+        grp.add(boite(w, 0.06, m.ep + 0.02, M.menuiserie, x, o.haut - 0.02, 0));
         // battant entrouvert
         const battant = new THREE.Group();
         battant.position.set(x - w / 2 + 0.02, 0, 0);
@@ -517,7 +595,7 @@ function construireNiveau(niveau, M, { hauteur = H_MUR, ext = true, collisions =
   // mobilier
   niveau.pieces.forEach(p => {
     if (p.w < 1.2 || p.d < 1.2) return;
-    const f = meubler(p, M);
+    const f = meubler(p, M, identite);
     // orienter le séjour vers la baie si possible
     g.add(f);
     // tapis pour les chambres
@@ -531,6 +609,8 @@ function construireNiveau(niveau, M, { hauteur = H_MUR, ext = true, collisions =
     lp.position.set(p.x + p.w / 2, hauteur - 0.22, p.z + p.d / 2);
     g.add(lp);
   });
+
+  if (identite) detailsStyle(g, niveau, M, identite, hauteur);
 
   // plafond (masqué en mode maquette)
   const plafond = new THREE.Mesh(new THREE.PlaneGeometry(W, D), new THREE.MeshStandardMaterial({ color: 0xFBF8F2, roughness: 1, side: THREE.DoubleSide }));
@@ -562,11 +642,68 @@ export class Visite {
     this.touches = new Set();
     this.pointers = new Map();
     this.vitesse = 2.4;
+    this.reduit = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches || false;
+    this.identite = identiteDe(bien);
+    this.nuit = false;
+    this.personnes = false;
+    this.panneauOuvert = false;
+    this.selection = null;
+    this.selectionBox = null;
+    this.objetsParCle = new Map();
+    this.personnages = [];
+    this.lumieresNuit = [];
+    this.ampoules = [];
+    this.cheminees = [];
+    this.positions = {};
+    this.supprimes = new Set();
+    this.sauvegarde = this._lireSauvegarde();
+    this.equipements = { ...this.identite.equipements };
+    if (this.sauvegarde?.equipements) Object.assign(this.equipements, this.sauvegarde.equipements);
+    if (this.sauvegarde?.positions) this.positions = { ...this.sauvegarde.positions };
+    if (this.sauvegarde?.supprimes) this.supprimes = new Set(this.sauvegarde.supprimes);
+    if (this.sauvegarde?.nuit) this.nuit = true;
+    if (this.sauvegarde?.personnes) this.personnes = true;
     this._construireDOM();
     this._initThree();
     this._monterNiveau(0);
+    this._construireExterieur();
     this._evenements();
+    this._majBoutons();
+    this._appliquerNuit();
     this._boucle();
+    window.__visite3d = this;
+  }
+
+  _lireSauvegarde() {
+    try {
+      const v = JSON.parse(localStorage.getItem(`havre.maquette.${this.bien.id}`) || 'null');
+      return v && v.version === 1 ? v : null;
+    } catch { return null; }
+  }
+
+  _sauvegarder() {
+    try {
+      this._memoriserPositions();
+      localStorage.setItem(`havre.maquette.${this.bien.id}`, JSON.stringify({
+        version: 1,
+        equipements: this.equipements,
+        positions: this.positions,
+        supprimes: [...this.supprimes],
+        nuit: this.nuit,
+        personnes: this.personnes
+      }));
+    } catch { /* stockage local indisponible : la maquette reste utilisable */ }
+  }
+
+  _memoriserPositions() {
+    this.deco?.children.forEach(g => {
+      if (!g.userData?.uid) return;
+      this.positions[g.userData.uid] = {
+        x: +g.position.x.toFixed(3),
+        z: +g.position.z.toFixed(3),
+        ry: +g.rotation.y.toFixed(3)
+      };
+    });
   }
 
   /* ── DOM de la visite ── */
@@ -589,13 +726,56 @@ export class Visite {
           <div class="v3d-actions">
             ${n > 1 ? `<div class="v3d-niveaux">${this.plan.niveaux.map((x, i) =>
               `<button data-niveau="${i}" class="${i === 0 ? 'actif' : ''}">${i === 0 ? 'RDC' : 'Étage ' + i}</button>`).join('')}</div>` : ''}
+            <button class="v3d-icone v3d-nuit" title="Mode nuit (N)" aria-label="Mode nuit" aria-pressed="false">☾</button>
+            <button class="v3d-icone v3d-amenager" title="Aménager la maquette" aria-label="Aménager la maquette" aria-pressed="false">✎</button>
             <button class="v3d-plein" title="Plein écran" aria-label="Plein écran">⤢</button>
             <button class="v3d-fermer" title="Fermer" aria-label="Fermer">✕</button>
           </div>
         </header>
+        <aside class="v3d-panneau" hidden aria-label="Aménagement de la maquette">
+          <header class="vp-tete">
+            <div><b>Aménager</b><span class="vp-signature">${this.identite.nom} · ${this.identite.resume}</span></div>
+            <button class="vp-fermer" title="Fermer le panneau" aria-label="Fermer le panneau">✕</button>
+          </header>
+          <div class="vp-corps">
+            <section class="vp-section">
+              <span class="vp-label">Ambiance</span>
+              <div class="vp-duo">
+                <button data-amb="nuit" aria-pressed="false"><i aria-hidden="true">☾</i><span>Nuit</span></button>
+                <button data-amb="personnes" aria-pressed="false"><i aria-hidden="true">◉</i><span>Personnes</span></button>
+              </div>
+            </section>
+            <section class="vp-section">
+              <span class="vp-label">Équipements</span>
+              <div class="vp-chips">
+                <button data-equip="tv" aria-pressed="false">Télévision</button>
+                <button data-equip="biblio" aria-pressed="false">Bibliothèque</button>
+                <button data-equip="bureau" aria-pressed="false">Bureau</button>
+                <button data-equip="table" aria-pressed="false">Table</button>
+                <button data-equip="plantes" aria-pressed="false">Plantes</button>
+                <button data-equip="tableaux" aria-pressed="false">Tableaux</button>
+                <button data-equip="tapis" aria-pressed="false">Tapis</button>
+                <button data-equip="luminaires" aria-pressed="false">Luminaires</button>
+              </div>
+            </section>
+            <section class="vp-section vp-selection" hidden>
+              <span class="vp-label">Objet sélectionné</span>
+              <p class="vp-selection-nom">—</p>
+              <div class="vp-outils">
+                <button data-sel="gauche" title="Pivoter à gauche" aria-label="Pivoter à gauche">⟲</button>
+                <button data-sel="droite" title="Pivoter à droite" aria-label="Pivoter à droite">⟳</button>
+                <button data-sel="supprimer" class="danger">Supprimer</button>
+                <button data-sel="fermer" title="Désélectionner" aria-label="Désélectionner">✕</button>
+              </div>
+            </section>
+            <p class="vp-aide">Glissez un objet sur le sol pour le déplacer. Flèches pour ajuster, <b>R</b> pour pivoter, <b>Suppr</b> pour retirer.</p>
+            <button class="vp-reset" data-reset>Réinitialiser l'aménagement</button>
+          </div>
+        </aside>
         <div class="v3d-hud">
           <div class="v3d-piece">Entrée</div>
           <div class="v3d-surface">${Math.round(this.plan.niveaux[0].surface)} m² · ${this.plan.niveaux[0].pieces.length} pièces</div>
+          <div class="v3d-identite">${this.identite.nom} · ${this.identite.resume}</div>
         </div>
         <div class="v3d-mini"><canvas width="320" height="320"></canvas><span class="v3d-nord">N</span></div>
         <div class="v3d-aide">
@@ -613,7 +793,11 @@ export class Visite {
     this.canvas = this.racine.querySelector('.v3d-canvas');
     this.elPiece = this.racine.querySelector('.v3d-piece');
     this.elSurface = this.racine.querySelector('.v3d-surface');
+    this.elIdentite = this.racine.querySelector('.v3d-identite');
     this.elNomNiveau = this.racine.querySelector('.v3d-niveau-nom');
+    this.elPanneau = this.racine.querySelector('.v3d-panneau');
+    this.elSelection = this.racine.querySelector('.vp-selection');
+    this.elSelectionNom = this.racine.querySelector('.vp-selection-nom');
     this.elMini = this.racine.querySelector('.v3d-mini canvas');
     this.elPlan = this.racine.querySelector('.v3d-plan');
     this.elCharge = this.racine.querySelector('.v3d-charge');
@@ -622,9 +806,11 @@ export class Visite {
   }
 
   _initThree() {
-    this.M = materiaux();
+    this.M = materiaux(this.identite);
     this.scene = new THREE.Scene();
-    this.scene.background = texCiel3D();
+    this.cielJour = texCiel3D();
+    this.cielNuit = texCiel3D(true);
+    this.scene.background = this.cielJour;
     this.scene.fog = new THREE.Fog(0xDFECFF, 40, 120);
     this.camera = new THREE.PerspectiveCamera(68, 1, 0.05, 400);
 
@@ -636,7 +822,8 @@ export class Visite {
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
-    this.scene.add(new THREE.HemisphereLight(0xEAF3FF, 0xB9AE99, 1.15));
+    this.hemisphere = new THREE.HemisphereLight(0xEAF3FF, 0xB9AE99, 1.15);
+    this.scene.add(this.hemisphere);
     const soleil = new THREE.DirectionalLight(0xFFF3DC, 2.1);
     soleil.position.set(-18, 26, -14);
     soleil.castShadow = true;
@@ -652,27 +839,13 @@ export class Visite {
     this.scene.add(interieur);
     this.lumiereInterieure = interieur;
 
-    // sol extérieur + paysage
-    const terrain = new THREE.Mesh(new THREE.PlaneGeometry(170, 170), this.M.pelouse);
-    terrain.rotation.x = -Math.PI / 2;
-    terrain.position.y = -0.2;
-    terrain.receiveShadow = true;
-    this.scene.add(terrain);
     this.habillage = new THREE.Group();
     this.scene.add(this.habillage);
-    const r = rng(hashTexte(this.bien.id));
-    for (let i = 0; i < 26; i++) {
-      const a = r() * Math.PI * 2, rad = 15 + r() * 32;
-      const t = this._arbre(r, 0.7 + r() * 0.9);
-      t.position.set(Math.cos(a) * rad, -0.2, Math.sin(a) * rad);
-      this.habillage.add(t);
-    }
-    for (let i = 0; i < 10; i++) {
-      const b = new THREE.Mesh(new THREE.IcosahedronGeometry(0.35 + r() * 0.3, 0), this.M.vegetalSombre);
-      b.position.set((r() - 0.5) * 26, 0.1, (r() - 0.5) * 26);
-      b.castShadow = true;
-      this.habillage.add(b);
-    }
+    this.lampesExt = new THREE.Group();
+    this.scene.add(this.lampesExt);
+
+    this.raycaster = new THREE.Raycaster();
+    this.planSol = new THREE.Plane(new THREE.Vector3(0, 1, 0), -0.02);
 
     this.groupe = new THREE.Group();
     this.scene.add(this.groupe);
@@ -680,45 +853,23 @@ export class Visite {
     this.scene.add(this.porte);
   }
 
-  _arbre(r, echelle) {
-    const g = new THREE.Group();
-    g.add(cylindre(0.09 * echelle, 0.16 * echelle, 1.9 * echelle, 7, this.M.terre, 0, 0.95 * echelle, 0));
-    for (let i = 0; i < 3; i++) {
-      const c = new THREE.Mesh(new THREE.IcosahedronGeometry((0.85 - i * 0.12) * echelle, 0), i % 2 ? this.M.vegetal : this.M.vegetalSombre);
-      c.position.set((r() - 0.5) * 0.5, (1.9 + i * 0.55) * echelle, (r() - 0.5) * 0.5);
-      c.castShadow = true;
-      g.add(c);
-    }
-    return g;
-  }
-
   _monterNiveau(i) {
     this.niveau = i;
     this.niveauData = this.plan.niveaux[i];
     this.collisions = [];
+    this._selectionner(null);
+    this.personnages = [];
+    this.objetsParCle = new Map();
+    this.lumieresNuit = [];
+    this.ampoules = [];
+    this.cheminees = [];
     this.groupe.clear();
     this.pieces = this.niveauData.pieces;
     this.W = this.niveauData.largeur;
     this.D = this.niveauData.profondeur;
     // socle + niveau
-    const g = construireNiveau(this.niveauData, this.M, { collisions: this.collisions });
+    const g = construireNiveau(this.niveauData, this.M, { collisions: this.collisions, identite: this.identite });
     this.groupe.add(g);
-    // terrasse / jardin sur RDC
-    if (i === 0) {
-      const terrasse = new THREE.Mesh(new THREE.PlaneGeometry(7.5, 4.6), this.M.dalle);
-      terrasse.rotation.x = -Math.PI / 2;
-      terrasse.position.set(this.W / 2, -0.01, this.D + 2.1);
-      terrasse.receiveShadow = true;
-      this.groupe.add(terrasse);
-      for (let k = 0; k < 4; k++) {
-        const ch = boite(0.42, 0.06, 1.7, this.M.bois, this.W / 2 - 2.6 + k * 0.9, 0.42, this.D + 3.2);
-        this.groupe.add(ch);
-        this.groupe.add(cylindre(0.03, 0.03, 0.42, 6, this.M.metalNoir, this.W / 2 - 2.6 + k * 0.9, 0.21, this.D + 2.4));
-      }
-      const olivier = this._arbre(rng(12), 1.6);
-      olivier.position.set(this.W + 2.2, -0.2, this.D - 1.5);
-      this.groupe.add(olivier);
-    }
     // plafond : masqué en maquette / plan
     g.getObjectByName('plafond').visible = this.mode === 'visite';
 
@@ -734,11 +885,451 @@ export class Visite {
     this.angles.phi = 0.82;
     this.elNomNiveau.textContent = this.niveauData.nom;
     this.elSurface.textContent = `${Math.round(this.niveauData.surface)} m² · ${this.niveauData.pieces.length} pièces`;
+    if (this.elIdentite) this.elIdentite.textContent = `${this.identite.nom} · ${this.identite.resume}`;
     this.racine.querySelectorAll('[data-niveau]').forEach(b => {
       b.classList.toggle('actif', +b.dataset.niveau === i);
     });
+    this.deco = new THREE.Group();
+    this.deco.name = 'decoration';
+    this.groupe.add(this.deco);
+    this.personnagesGroupe = new THREE.Group();
+    this.personnagesGroupe.name = 'personnes';
+    this.groupe.add(this.personnagesGroupe);
+    this._peupler();
+    this._repeuplerPersonnes();
+    this._construireLumieresNuit();
     this._dessinerPlan();
     this._majHUD();
+    this._majBoutons();
+  }
+
+  _pieceDe(types) {
+    const dispo = this.pieces.filter(p => types.includes(p.type) && p.w > 1.3 && p.d > 1.3);
+    return dispo.sort((a, b) => b.w * b.d - a.w * a.d)[0]
+      || this.pieces.filter(p => !['sdb', 'wc', 'escalier', 'palier', 'terrasse'].includes(p.type))
+        .sort((a, b) => b.w * b.d - a.w * a.d)[0]
+      || null;
+  }
+
+  _peupler() {
+    if (!this.deco) return;
+    this._selectionner(null);
+    this.deco.clear();
+    this.objetsParCle = new Map();
+    this.ampoules = [];
+    this.cheminees = [];
+    const sejour = this._pieceDe(['sejour']);
+    const cuisine = this._pieceDe(['cuisine']);
+    const bureau = this._pieceDe(['bureau']);
+    const chambre = this._pieceDe(['chambre', 'suite']);
+    const entree = this._pieceDe(['entree']);
+    this._indexParCle = new Map();
+    const ajouter = (cle, piece) => {
+      if (!piece) return;
+      const gs = creerEquipement(cle, piece, this.M, this.identite, this._indexParCle.get(cle) || 0);
+      gs.forEach(g => {
+        const idx = this._indexParCle.get(cle) || 0;
+        this._indexParCle.set(cle, idx + 1);
+        const uid = `n${this.niveau}-${cle}-${idx}`;
+        g.userData.uid = uid;
+        if (this.supprimes.has(uid)) return;
+        const p = this.positions[uid];
+        if (p) {
+          g.position.x = clamp(p.x, 0.25, this.W - 0.25);
+          g.position.z = clamp(p.z, 0.25, this.D - 0.25);
+          g.rotation.y = p.ry || 0;
+        }
+        g.traverse(o => {
+          if (!o.isMesh) return;
+          o.castShadow = true; o.receiveShadow = true;
+          if (o.userData.ampoule) this.ampoules.push(o);
+          if (o.userData.cheminee) this.cheminees.push(o);
+        });
+        this.deco.add(g);
+        if (!this.objetsParCle.has(cle)) this.objetsParCle.set(cle, []);
+        this.objetsParCle.get(cle).push(g);
+      });
+    };
+
+    if (this.equipements.tv) ajouter('tv', sejour);
+    if (this.equipements.biblio) ajouter('biblio', bureau || sejour);
+    if (this.equipements.bureau) ajouter('bureau', bureau || sejour);
+    if (this.equipements.table) ajouter('table', cuisine || sejour);
+    if (this.equipements.plantes) {
+      ajouter('plantes', sejour);
+      if (entree && entree !== sejour) ajouter('plantes', entree);
+    }
+    if (this.equipements.tableaux) ajouter('tableaux', sejour);
+    if (this.equipements.tapis) ajouter('tapis', entree || chambre || sejour);
+    if (this.equipements.luminaires) ajouter('luminaires', sejour);
+    this._construireLumieresNuit();
+  }
+
+  _basculerEquipement(cle) {
+    this._memoriserPositions();
+    this.equipements[cle] = !this.equipements[cle];
+    if (this.equipements[cle]) {
+      const prefixe = `n${this.niveau}-${cle}-`;
+      [...this.supprimes].forEach(uid => { if (uid.startsWith(prefixe)) this.supprimes.delete(uid); });
+    }
+    this._peupler();
+    this._majBoutons();
+    this._sauvegarder();
+  }
+
+  _repeuplerPersonnes() {
+    if (!this.personnagesGroupe) return;
+    this.personnagesGroupe.clear();
+    this.personnages = [];
+    if (!this.personnes) return;
+    const sejour = this._pieceDe(['sejour']);
+    const cuisine = this._pieceDe(['cuisine']);
+    const chambre = this._pieceDe(['chambre', 'suite']);
+    const entree = this._pieceDe(['entree']);
+    const lieux = [];
+    if (sejour) {
+      lieux.push({ piece: sejour, fx: 0.3, fz: 0.32, echelle: 1.02 });
+      if (sejour.w * sejour.d > 15) lieux.push({ piece: sejour, fx: 0.7, fz: 0.25, echelle: 0.98 });
+    }
+    if (cuisine) lieux.push({ piece: cuisine, fx: 0.5, fz: 0.55, echelle: 0.97 });
+    if (chambre) lieux.push({ piece: chambre, fx: 0.66, fz: 0.62, echelle: 0.96 });
+    if (entree) lieux.push({ piece: entree, fx: 0.5, fz: 0.5, echelle: 0.64 });
+    lieux.slice(0, 5).forEach((l, i) => {
+      const p = l.piece;
+      const g = creerPersonnage({
+        pose: 'debout',
+        echelle: l.echelle,
+        seed: this.identite.graine + i * 41,
+        palette: this.identite.palette
+      });
+      g.position.set(
+        clamp(p.x + p.w * l.fx, p.x + 0.3, p.x + p.w - 0.3),
+        0,
+        clamp(p.z + p.d * l.fz, p.z + 0.3, p.z + p.d - 0.3)
+      );
+      g.rotation.y = (i * 1.9 + this.identite.graine % 7) % (Math.PI * 2);
+      g.userData.baseY = 0;
+      this.personnagesGroupe.add(g);
+      this.personnages.push(g);
+    });
+  }
+
+  _basculerPersonnes() {
+    this.personnes = !this.personnes;
+    this._repeuplerPersonnes();
+    this._majBoutons();
+    this._sauvegarder();
+  }
+
+  _construireLumieresNuit() {
+    this.lumieresNuit?.forEach(l => {
+      l.parent?.remove(l);
+      if (l.isMesh) {
+        l.geometry?.dispose();
+        l.material?.dispose();
+      }
+    });
+    this.lumieresNuit = [];
+    if (!this.nuit || !this.groupe) return;
+    const pieces = this.pieces
+      .filter(p => ['sejour', 'cuisine', 'chambre', 'suite', 'entree', 'bureau'].includes(p.type) && p.w * p.d > 4)
+      .sort((a, b) => b.w * b.d - a.w * a.d)
+      .slice(0, 5);
+    const matLanterne = new THREE.MeshStandardMaterial({
+      color: 0xFFE3B0, emissive: 0xFFC06A, emissiveIntensity: 2.4,
+      roughness: 0.5, metalness: 0
+    });
+    const ajouterLumiere = (x, y, z, intensite, distance) => {
+      const l = new THREE.PointLight(0xFFC98A, intensite, distance, 2);
+      l.position.set(x, y, z);
+      l.castShadow = false;
+      this.groupe.add(l);
+      this.lumieresNuit.push(l);
+      const lanterne = new THREE.Mesh(new THREE.SphereGeometry(0.105, 10, 8), matLanterne);
+      lanterne.position.set(x, y, z);
+      this.groupe.add(lanterne);
+      this.lumieresNuit.push(lanterne);
+    };
+    pieces.forEach(p => {
+      ajouterLumiere(p.x + p.w / 2, H_MUR - 0.32, p.z + p.d / 2, 10.5, 6.2);
+    });
+    // deux fanaux dehors : on lit la terrasse et l'entrée même sans lune
+    ajouterLumiere(this.W / 2, 2.15, this.D + 3.15, 7.5, 7.4);
+    ajouterLumiere(1.8, 1.85, this.D + 1.55, 5.2, 5.8);
+  }
+
+  _construireExterieur() {
+    this.habillage.clear();
+    this.lampesExt.clear();
+    const id = this.identite;
+    const W = this.plan.niveaux[0].largeur, D = this.plan.niveaux[0].profondeur;
+    const r = rng(id.graine ^ 0x9E3779B9);
+
+    const solMat = this.M.solExt.clone();
+    if (solMat.map) {
+      solMat.map = solMat.map.clone();
+      solMat.map.repeat.set(16, 16);
+      solMat.map.needsUpdate = true;
+    }
+    const terrain = new THREE.Mesh(new THREE.PlaneGeometry(180, 180), solMat);
+    terrain.rotation.x = -Math.PI / 2;
+    terrain.position.set(W / 2, -0.2, D / 2);
+    terrain.receiveShadow = true;
+    this.habillage.add(terrain);
+
+    // allée / cour d'entrée
+    const allee = boite(1.9, 0.05, 7, this.M.dalle, W / 2, -0.16, D + 3.4);
+    allee.receiveShadow = true;
+    this.habillage.add(allee);
+
+    // terrasse ou cour, toujours côté jardin
+    const deckW = Math.min(8.5, Math.max(4.8, W * 0.72));
+    const deckD = 4.0;
+    const deck = boite(deckW, 0.1, deckD, id.style === 'urbain' || id.style === 'haussmannien' ? this.M.pavage : this.M.bois, W / 2, 0.02, D + 2.2);
+    deck.receiveShadow = true;
+    this.habillage.add(deck);
+    if (id.style === 'mediterraneen' || id.style === 'tropique' || id.style === 'provencal') {
+      // pergola
+      for (const s of [-1, 1]) {
+        this.habillage.add(cylindre(0.07, 0.09, 2.5, 8, this.M.bois, W / 2 + s * deckW * 0.42, 1.25, D + deckD * 0.5 + 0.2));
+        this.habillage.add(cylindre(0.07, 0.09, 2.5, 8, this.M.bois, W / 2 + s * deckW * 0.42, 1.25, D + 3.9));
+      }
+      for (let k = 0; k < 8; k++) {
+        this.habillage.add(boite(deckW * 0.9, 0.06, 0.1, this.M.bois, W / 2, 2.5, D + 2.4 + k * 0.24));
+      }
+    }
+    for (let k = 0; k < 3; k++) {
+      const x = W / 2 - deckW * 0.32 + k * deckW * 0.32;
+      this.habillage.add(boite(0.46, 0.06, 0.46, this.M.bois, x, 0.4, D + 2.4));
+      this.habillage.add(boite(0.46, 0.4, 0.05, this.M.bois, x, 0.62, D + 2.2));
+      this.habillage.add(cylindre(0.03, 0.03, 0.38, 6, this.M.metalNoir, x, 0.19, D + 2.4));
+    }
+
+    // bassin : uniquement là où le climat et la parcelle le justifient
+    if (id.nature.eau) {
+      const px = W + 5.4, pz = D * 0.48;
+      const bassin = new THREE.Mesh(new THREE.PlaneGeometry(7.4, 3.6), this.M.eau);
+      bassin.rotation.x = -Math.PI / 2;
+      bassin.position.set(px, -0.08, pz);
+      this.habillage.add(bassin);
+      this.habillage.add(boite(7.9, 0.14, 0.22, this.M.pierre, px, 0.0, pz - 1.9));
+      this.habillage.add(boite(7.9, 0.14, 0.22, this.M.pierre, px, 0.0, pz + 1.9));
+      this.habillage.add(boite(0.22, 0.14, 3.8, this.M.pierre, px - 3.9, 0.0, pz));
+      this.habillage.add(boite(0.22, 0.14, 3.8, this.M.pierre, px + 3.9, 0.0, pz));
+      for (let k = 0; k < 3; k++) {
+        const ch = boite(0.42, 0.06, 1.7, this.M.bois, px - 2.4 + k * 1.2, 0.42, pz + 2.9);
+        this.habillage.add(ch);
+        this.habillage.add(cylindre(0.03, 0.03, 0.42, 6, this.M.metalNoir, px - 2.4 + k * 1.2, 0.21, pz + 2.15));
+      }
+    }
+
+    // végétation régionale, en couronne
+    const especes = id.nature.especes;
+    const nb = id.nature.densite;
+    for (let i = 0; i < nb; i++) {
+      const a = r() * Math.PI * 2;
+      const rad = 10 + r() * 27;
+      const x = W / 2 + Math.cos(a) * rad;
+      const z = D / 2 + Math.sin(a) * rad * 0.8;
+      if (Math.abs(x - W / 2) < W * 0.6 + 3 && Math.abs(z - D / 2) < D * 0.65 + 4) continue;
+      if (id.nature.eau && x > W + 1.5 && x < W + 9.5 && Math.abs(z - D * 0.48) < 4) continue;
+      const espece = especes[i % especes.length];
+      const echelle = (espece === 'oyat' || espece === 'buis' ? 0.7 : 0.85) + r() * 0.7;
+      const t = creerArbre(espece, echelle, r, this.M);
+      t.position.set(x, -0.2, z);
+      t.rotation.y = r() * Math.PI * 2;
+      this.habillage.add(t);
+    }
+    // massifs et pierres
+    for (let i = 0; i < 9; i++) {
+      const b = new THREE.Mesh(new THREE.IcosahedronGeometry(0.3 + r() * 0.35, 0), i % 2 ? this.M.vegetal : this.M.vegetalSombre);
+      b.position.set(W / 2 + (r() - 0.5) * (W + 12), 0.05, D / 2 + (r() - 0.5) * (D + 10));
+      b.castShadow = true;
+      this.habillage.add(b);
+    }
+    if (id.nature.neige) {
+      for (let i = 0; i < 12; i++) {
+        const n = new THREE.Mesh(new THREE.CircleGeometry(0.7 + r() * 1.3, 9), this.M.neige);
+        n.rotation.x = -Math.PI / 2;
+        n.position.set(W / 2 + (r() - 0.5) * (W + 20), -0.18, D / 2 + (r() - 0.5) * (D + 18));
+        this.habillage.add(n);
+      }
+    }
+
+    // guirlande de terrasse, allumée la nuit
+    const fil = new THREE.MeshStandardMaterial({ color: 0xFFF0C8, emissive: 0xFFD49A, emissiveIntensity: 1.8, roughness: 0.7 });
+    for (let i = 0; i < 9; i++) {
+      const l = new THREE.Mesh(new THREE.SphereGeometry(0.06, 8, 6), fil);
+      l.position.set(W / 2 - deckW / 2 + i * (deckW / 8), 2.35, D + 2.25);
+      this.lampesExt.add(l);
+    }
+    this.lampesExt.visible = this.nuit;
+  }
+
+  _appliquerNuit() {
+    if (!this.scene) return;
+    this.scene.background = this.nuit ? this.cielNuit : this.cielJour;
+    this.scene.fog.color.setHex(this.nuit ? 0x0A1322 : 0xDFECFF);
+    this.scene.fog.near = this.nuit ? 16 : 40;
+    this.scene.fog.far = this.nuit ? 92 : 120;
+    this.hemisphere.intensity = this.nuit ? 0.44 : 1.15;
+    this.hemisphere.color.setHex(this.nuit ? 0x31496B : 0xEAF3FF);
+    this.hemisphere.groundColor.setHex(this.nuit ? 0x1A2029 : 0xB9AE99);
+    this.soleil.intensity = this.nuit ? 0.82 : 2.1;
+    this.soleil.color.setHex(this.nuit ? 0x9DB7E8 : 0xFFF3DC);
+    this.renderer.toneMappingExposure = this.nuit ? 1.08 : 1.05;
+    this.lumiereInterieure.intensity = this.nuit ? 14 : 18;
+    this.M.verre.emissive.setHex(this.nuit ? 0xFFD9A0 : 0x000000);
+    this.M.verre.emissiveIntensity = this.nuit ? 0.42 : 0;
+    this.M.eau.emissive.setHex(this.nuit ? 0x1D5C70 : 0x000000);
+    this.M.eau.emissiveIntensity = this.nuit ? 0.5 : 0;
+    this.ampoules.forEach(o => {
+      if (o.material?.emissive) {
+        o.material.emissive.setHex(this.nuit ? 0xFFD69A : 0x000000);
+        o.material.emissiveIntensity = this.nuit ? 1.6 : 0;
+      }
+    });
+    this.cheminees.forEach(o => {
+      if (o.material?.emissive) {
+        o.material.emissive.setHex(this.nuit ? 0xFF7A2E : 0x000000);
+        o.material.emissiveIntensity = this.nuit ? 1.1 : 0;
+      }
+    });
+    if (this.lampesExt) this.lampesExt.visible = this.nuit;
+    this._construireLumieresNuit();
+    this.el?.classList.toggle('nuit', this.nuit);
+    this._majBoutons();
+  }
+
+  _basculerNuit() {
+    this.nuit = !this.nuit;
+    this._appliquerNuit();
+    this._sauvegarder();
+  }
+
+  _basculerPanneau(force) {
+    this.panneauOuvert = force === undefined ? !this.panneauOuvert : !!force;
+    if (this.panneauOuvert) this.setMode('maquette');
+    if (this.elPanneau) this.elPanneau.hidden = !this.panneauOuvert;
+    const b = this.racine.querySelector('.v3d-amenager');
+    if (b) b.setAttribute('aria-pressed', String(this.panneauOuvert));
+  }
+
+  _majBoutons() {
+    if (!this.el) return;
+    this.racine.querySelectorAll('[data-equip]').forEach(b => {
+      const on = !!this.equipements[b.dataset.equip];
+      b.setAttribute('aria-pressed', String(on));
+      b.classList.toggle('actif', on);
+    });
+    this.racine.querySelectorAll('[data-amb="nuit"], .v3d-nuit').forEach(b => {
+      b.setAttribute('aria-pressed', String(this.nuit));
+      b.classList.toggle('actif', this.nuit);
+    });
+    this.racine.querySelectorAll('[data-amb="personnes"]').forEach(b => {
+      b.setAttribute('aria-pressed', String(this.personnes));
+      b.classList.toggle('actif', this.personnes);
+    });
+    this.racine.querySelector('.v3d-amenager')?.setAttribute('aria-pressed', String(this.panneauOuvert));
+  }
+
+  _reinitialiser() {
+    try { localStorage.removeItem(`havre.maquette.${this.bien.id}`); } catch { /* rien */ }
+    this.positions = {};
+    this.supprimes = new Set();
+    this.equipements = { ...this.identite.equipements };
+    this.nuit = false;
+    this.personnes = false;
+    this._peupler();
+    this._repeuplerPersonnes();
+    this._appliquerNuit();
+    this._majBoutons();
+  }
+
+  _pickerObjet(e) {
+    const r = this.canvas.getBoundingClientRect();
+    const p = new THREE.Vector2(
+      ((e.clientX - r.left) / r.width) * 2 - 1,
+      -((e.clientY - r.top) / r.height) * 2 + 1
+    );
+    this.raycaster.setFromCamera(p, this.camera);
+    const hits = this.raycaster.intersectObjects(this.deco?.children || [], true);
+    for (const h of hits) {
+      let o = h.object;
+      while (o && o !== this.deco) {
+        if (o.userData?.selectable) return o;
+        o = o.parent;
+      }
+    }
+    return null;
+  }
+
+  _pointSol(e) {
+    const r = this.canvas.getBoundingClientRect();
+    const p = new THREE.Vector2(
+      ((e.clientX - r.left) / r.width) * 2 - 1,
+      -((e.clientY - r.top) / r.height) * 2 + 1
+    );
+    this.raycaster.setFromCamera(p, this.camera);
+    const pt = new THREE.Vector3();
+    return this.raycaster.ray.intersectPlane(this.planSol, pt) ? pt : null;
+  }
+
+  _selectionner(obj) {
+    if (this.selectionBox) {
+      this.scene.remove(this.selectionBox);
+      this.selectionBox.geometry?.dispose();
+      this.selectionBox.material?.dispose();
+      this.selectionBox = null;
+    }
+    this.selection = obj || null;
+    if (obj) {
+      this.selectionBox = new THREE.BoxHelper(obj, 0x7FB2FF);
+      this.selectionBox.material.depthTest = false;
+      this.selectionBox.material.transparent = true;
+      this.selectionBox.material.opacity = 0.95;
+      this.scene.add(this.selectionBox);
+    }
+    if (this.elSelection) this.elSelection.hidden = !obj;
+    if (obj && this.elSelectionNom) {
+      const noms = { tv: 'Télévision', biblio: 'Bibliothèque', bureau: 'Bureau', table: 'Table', plantes: 'Plante', tableaux: 'Tableau', tapis: 'Tapis', luminaires: 'Luminaire' };
+      this.elSelectionNom.textContent = noms[obj.userData.cle] || 'Objet';
+    }
+  }
+
+  _majAide() {
+    if (this.selectionBox) this.selectionBox.update();
+  }
+
+  _pivoterSelection(delta) {
+    if (!this.selection) return;
+    this.selection.rotation.y += delta;
+    this._majAide();
+    this._sauvegarder();
+  }
+
+  _deplacerSelection(dx, dz) {
+    if (!this.selection) return;
+    this.selection.position.x = clamp(this.selection.position.x + dx, 0.25, this.W - 0.25);
+    this.selection.position.z = clamp(this.selection.position.z + dz, 0.25, this.D - 0.25);
+    this._majAide();
+    this._sauvegarder();
+  }
+
+  _supprimerSelection() {
+    if (!this.selection) return;
+    const g = this.selection;
+    const cle = g.userData.cle;
+    const uid = g.userData.uid;
+    this._selectionner(null);
+    g.parent?.remove(g);
+    const arr = this.objetsParCle.get(cle) || [];
+    this.objetsParCle.set(cle, arr.filter(x => x !== g));
+    delete this.positions[uid];
+    this.supprimes.add(uid);
+    if (!this.objetsParCle.get(cle).length) this.equipements[cle] = false;
+    this._majBoutons();
+    this._sauvegarder();
   }
 
   _dessinerPlan() {
@@ -747,6 +1338,7 @@ export class Visite {
 
   setMode(m) {
     this.mode = m;
+    if (m !== 'maquette' && this.panneauOuvert) this._basculerPanneau(false);
     this.racine.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('actif', b.dataset.mode === m));
     this.elPlan.hidden = m !== 'plan';
     this.el.classList.toggle('mode-plan', m === 'plan');
@@ -766,6 +1358,7 @@ export class Visite {
     if (m === 'plan') {
       this.elPlan.scrollTop = 0;
     }
+    if (m !== 'maquette') this._selectionner(null);
   }
 
   _evenements() {
@@ -777,9 +1370,41 @@ export class Visite {
     });
     el.querySelectorAll('[data-mode]').forEach(b => b.addEventListener('click', () => this.setMode(b.dataset.mode)));
     el.querySelectorAll('[data-niveau]').forEach(b => b.addEventListener('click', () => this._monterNiveau(+b.dataset.niveau)));
+    el.querySelector('.v3d-nuit').addEventListener('click', () => this._basculerNuit());
+    el.querySelector('.v3d-amenager').addEventListener('click', () => this._basculerPanneau());
+    el.querySelector('.vp-fermer').addEventListener('click', () => this._basculerPanneau(false));
+    el.querySelectorAll('[data-amb="nuit"]').forEach(b => b.addEventListener('click', () => this._basculerNuit()));
+    el.querySelectorAll('[data-amb="personnes"]').forEach(b => b.addEventListener('click', () => this._basculerPersonnes()));
+    el.querySelectorAll('[data-equip]').forEach(b => b.addEventListener('click', () => this._basculerEquipement(b.dataset.equip)));
+    el.querySelectorAll('[data-sel]').forEach(b => b.addEventListener('click', () => {
+      const a = b.dataset.sel;
+      if (a === 'gauche') this._pivoterSelection(Math.PI / 6);
+      else if (a === 'droite') this._pivoterSelection(-Math.PI / 6);
+      else if (a === 'supprimer') this._supprimerSelection();
+      else this._selectionner(null);
+    }));
+    el.querySelector('[data-reset]').addEventListener('click', () => this._reinitialiser());
 
     this.canvas.addEventListener('pointerdown', (e) => {
       if (this.mode === 'plan') return;
+      if (this.mode === 'maquette' && e.button === 0) {
+        const obj = this._pickerObjet(e);
+        if (obj) {
+          this._selectionner(obj);
+          const pt = this._pointSol(e);
+          this.pointers.set(e.pointerId, {
+            type: 'objet',
+            x: e.clientX, y: e.clientY,
+            obj,
+            offset: pt ? new THREE.Vector3(obj.position.x - pt.x, 0, obj.position.z - pt.z) : new THREE.Vector3()
+          });
+          this.canvas.setPointerCapture(e.pointerId);
+          this.el.classList.add('actif');
+          this.elAstuce.classList.add('cache');
+          return;
+        }
+        if (this.selection) this._selectionner(null);
+      }
       this.canvas.setPointerCapture(e.pointerId);
       this.pointers.set(e.pointerId, { x: e.clientX, y: e.clientY, type: e.pointerType });
       this.el.classList.add('actif');
@@ -788,6 +1413,16 @@ export class Visite {
     this.canvas.addEventListener('pointermove', (e) => {
       const p = this.pointers.get(e.pointerId);
       if (!p) return;
+      if (p.type === 'objet') {
+        const pt = this._pointSol(e);
+        if (pt && this.selection) {
+          this.selection.position.x = clamp(pt.x + p.offset.x, 0.25, this.W - 0.25);
+          this.selection.position.z = clamp(pt.z + p.offset.z, 0.25, this.D - 0.25);
+          this._majAide();
+        }
+        p.x = e.clientX; p.y = e.clientY;
+        return;
+      }
       const dx = e.clientX - p.x, dy = e.clientY - p.y;
       p.x = e.clientX; p.y = e.clientY;
       if (this.mode === 'visite') {
@@ -798,7 +1433,11 @@ export class Visite {
         this.angles.phi = clamp(this.angles.phi + dy * 0.005, 0.22, 1.35);
       }
     });
-    const fin = (e) => { this.pointers.delete(e.pointerId); };
+    const fin = (e) => {
+      const p = this.pointers.get(e.pointerId);
+      if (p?.type === 'objet') this._sauvegarder();
+      this.pointers.delete(e.pointerId);
+    };
     this.canvas.addEventListener('pointerup', fin);
     this.canvas.addEventListener('pointercancel', fin);
     this.canvas.addEventListener('wheel', (e) => {
@@ -808,8 +1447,25 @@ export class Visite {
     }, { passive: false });
 
     this._clavier = (e) => {
-      if (this.mode !== 'visite') return;
       const k = e.key.toLowerCase();
+      if (k === 'n' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+        this._basculerNuit();
+        e.preventDefault();
+        return;
+      }
+      if (this.mode === 'maquette') {
+        if (k === 'escape') { this._selectionner(null); return; }
+        if (!this.selection) return;
+        const step = e.shiftKey ? 0.35 : 0.12;
+        if (k === 'arrowleft') { this._deplacerSelection(-step, 0); e.preventDefault(); }
+        else if (k === 'arrowright') { this._deplacerSelection(step, 0); e.preventDefault(); }
+        else if (k === 'arrowup') { this._deplacerSelection(0, -step); e.preventDefault(); }
+        else if (k === 'arrowdown') { this._deplacerSelection(0, step); e.preventDefault(); }
+        else if (k === 'r') { this._pivoterSelection(e.shiftKey ? Math.PI / 4 : Math.PI / 12); e.preventDefault(); }
+        else if (k === 'delete' || k === 'backspace') { this._supprimerSelection(); e.preventDefault(); }
+        return;
+      }
+      if (this.mode !== 'visite') return;
       if (['z', 'w', 'q', 'a', 's', 'd', 'arrowup', 'arrowdown', 'arrowleft', 'arrowright', 'shift'].includes(k)) {
         this.touches.add(k);
         if (!['shift'].includes(k)) e.preventDefault();
@@ -976,6 +1632,15 @@ export class Visite {
     } else if (this.mode === 'maquette') {
       this._cadrerMaquette();
     }
+    if (!this.reduit && this.personnages?.length) {
+      const t = maintenant / 1000;
+      this.personnages.forEach((p, i) => {
+        p.rotation.z = Math.sin(t * 0.55 + p.userData.phase) * p.userData.balance;
+        p.position.y = (p.userData.baseY || 0) + Math.sin(t * 0.9 + p.userData.phase) * 0.006;
+        p.rotation.x = Math.sin(t * 0.35 + i) * 0.008;
+      });
+    }
+    if (this.selectionBox) this.selectionBox.update();
     this.renderer.render(this.scene, this.camera);
     this.nbFrames++;
     this._raf = requestAnimationFrame(() => this._boucle());
@@ -987,6 +1652,7 @@ export class Visite {
     window.removeEventListener('keydown', this._clavier);
     window.removeEventListener('keyup', this._clavierUp);
     window.removeEventListener('resize', this._resize);
+    if (window.__visite3d === this) window.__visite3d = null;
     this.scene.traverse(o => {
       if (o.geometry) o.geometry.dispose();
       if (o.material) {

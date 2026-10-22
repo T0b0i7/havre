@@ -1013,14 +1013,92 @@ html.vue-ouverte{ overflow:hidden; }
   padding:.4rem .75rem; border-radius:999px;
 }
 .v3d-niveaux button.actif{ background:rgba(255,255,255,.92); color:var(--encre); }
-.v3d-plein, .v3d-fermer{
+.v3d-plein, .v3d-fermer, .v3d-icone{
   width:38px; height:38px; border-radius:50%; cursor:pointer;
   border:1px solid rgba(255,255,255,.25); background:rgba(255,255,255,.1);
   color:#fff; font-size:.9rem; display:grid; place-items:center;
   -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px);
-  transition:background .2s;
+  transition:background .2s, color .2s;
 }
-.v3d-plein:hover, .v3d-fermer:hover{ background:rgba(255,255,255,.24); }
+.v3d-plein:hover, .v3d-fermer:hover, .v3d-icone:hover{ background:rgba(255,255,255,.24); }
+.v3d-icone.actif{ background:#fff; color:var(--encre); border-color:#fff; }
+.v3d-nuit.actif{ background:#DCE9FF; color:#0A1030; }
+.v3d-identite{
+  margin-top:.42rem; font-size:.6rem; letter-spacing:.12em; text-transform:uppercase;
+  color:rgba(255,255,255,.48);
+}
+
+/* panneau d'aménagement */
+.v3d-panneau{
+  position:absolute; z-index:8; top:5.3rem; right:clamp(1rem,3vw,2rem);
+  width:min(350px, calc(100% - 2rem)); max-height:calc(100% - 7rem);
+  display:flex; flex-direction:column;
+  background:rgba(10,16,30,.94); color:#fff;
+  border:1px solid rgba(255,255,255,.16); border-radius:18px;
+  box-shadow:0 30px 80px -30px rgba(0,0,0,.8);
+  -webkit-backdrop-filter:blur(18px); backdrop-filter:blur(18px);
+  overflow:hidden;
+}
+.v3d-panneau[hidden], .vp-selection[hidden]{ display:none !important; }
+.vp-tete{
+  display:flex; align-items:flex-start; justify-content:space-between; gap:1rem;
+  padding:1.05rem 1.1rem .8rem; border-bottom:1px solid rgba(255,255,255,.1);
+}
+.vp-tete b{ display:block; font-family:var(--serif); font-weight:500; font-size:1.25rem; }
+.vp-signature{
+  display:block; font-size:.62rem; letter-spacing:.1em; text-transform:uppercase;
+  color:rgba(255,255,255,.48); margin-top:.25rem;
+}
+.vp-fermer{
+  width:30px; height:30px; border-radius:50%; border:1px solid rgba(255,255,255,.18);
+  background:transparent; color:rgba(255,255,255,.75); cursor:pointer; flex:none;
+}
+.vp-fermer:hover{ background:rgba(255,255,255,.12); color:#fff; }
+.vp-corps{ padding:.9rem 1.1rem 1.1rem; overflow:auto; }
+.vp-section{ margin-bottom:1.1rem; }
+.vp-label{
+  display:block; font-size:.58rem; letter-spacing:.14em; text-transform:uppercase;
+  color:rgba(255,255,255,.45); margin-bottom:.5rem; font-weight:600;
+}
+.vp-duo{ display:grid; grid-template-columns:1fr 1fr; gap:.45rem; }
+.vp-duo button{
+  display:flex; align-items:center; justify-content:center; gap:.45rem;
+  border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06);
+  color:rgba(255,255,255,.8); border-radius:10px; padding:.62rem .5rem;
+  font-family:var(--sans); font-size:.78rem; cursor:pointer; transition:background .2s, color .2s;
+}
+.vp-duo button i{ font-style:normal; font-size:.95rem; }
+.vp-duo button[aria-pressed="true"]{ background:#fff; color:var(--encre); border-color:#fff; }
+.vp-chips{ display:flex; flex-wrap:wrap; gap:.4rem; }
+.vp-chips button{
+  border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.06);
+  color:rgba(255,255,255,.76); border-radius:999px; padding:.38rem .72rem;
+  font-family:var(--sans); font-size:.72rem; cursor:pointer; transition:background .2s, color .2s, border-color .2s;
+}
+.vp-chips button:hover{ background:rgba(255,255,255,.14); }
+.vp-chips button[aria-pressed="true"]{ background:#DCE9FF; color:#12213A; border-color:#DCE9FF; }
+.vp-selection{
+  padding:.75rem; border:1px solid rgba(127,178,255,.35); border-radius:12px;
+  background:rgba(42,85,196,.16);
+}
+.vp-selection-nom{ margin:0 0 .55rem; font-size:.82rem; color:#fff; }
+.vp-outils{ display:flex; flex-wrap:wrap; gap:.35rem; }
+.vp-outils button{
+  border:1px solid rgba(255,255,255,.18); background:rgba(255,255,255,.08);
+  color:#fff; border-radius:8px; padding:.35rem .55rem; font-family:var(--sans);
+  font-size:.72rem; cursor:pointer;
+}
+.vp-outils button:hover{ background:rgba(255,255,255,.18); }
+.vp-outils button.danger{ border-color:rgba(255,130,110,.4); color:#FFC0B5; }
+.vp-aide{ margin:.2rem 0 1rem; font-size:.68rem; line-height:1.65; color:rgba(255,255,255,.5); }
+.vp-aide b{ color:rgba(255,255,255,.85); font-weight:600; }
+.vp-reset{
+  width:100%; border:1px solid rgba(255,255,255,.14); background:transparent;
+  color:rgba(255,255,255,.55); border-radius:9px; padding:.55rem;
+  font-family:var(--sans); font-size:.7rem; cursor:pointer;
+}
+.vp-reset:hover{ color:#fff; border-color:rgba(255,255,255,.3); }
+.v3d.nuit .v3d-haut{ background:linear-gradient(180deg, rgba(3,7,15,.75), rgba(3,7,15,0)); }
 
 .v3d-hud{
   position:absolute; left:clamp(1rem,3vw,2rem); bottom:clamp(1rem,3vw,2rem); z-index:5;
@@ -1289,6 +1367,12 @@ html.vue-ouverte{ overflow:hidden; }
   .v3d-segments{ order:3; width:100%; margin-left:0; justify-content:space-between; }
   .v3d-segments button{ flex:1; padding:.42rem .6rem; font-size:.76rem; }
   .v3d-actions{ margin-left:auto; }
+  .v3d-icone{ width:34px; height:34px; font-size:.82rem; }
+  .v3d-identite{ display:none; }
+  .v3d-panneau{
+    top:auto; left:.7rem; right:.7rem; bottom:.7rem; width:auto;
+    max-height:56vh; border-radius:16px;
+  }
   .v3d-niveaux button{ padding:.35rem .55rem; font-size:.68rem; }
   .v3d-plein{ display:none; }
   .v3d-hud{ left:1rem; bottom:auto; top:calc(1rem + 104px); }

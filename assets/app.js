@@ -129,7 +129,9 @@ export function suggerer(texte) {
 function parserHash() {
   const h = location.hash.replace(/^#\/?/, '');
   const [chemin, query] = h.split('?');
-  const seg = chemin.split('/').filter(Boolean);
+  const seg = chemin.split('/').filter(Boolean).map(s => {
+    try { return decodeURIComponent(s); } catch { return s; }
+  });
   const params = new URLSearchParams(query || '');
   return { seg, params, h };
 }
@@ -1084,9 +1086,9 @@ function rendreReconstruction() {
   c.innerHTML = `
     ${enteteVue({ actif: 'reconstruire', retour: '#accueil' })}
     <div class="r-intro">
-      <p class="surtitre-v">Moteur de reconstruction · v2</p>
+      <p class="surtitre-v">Moteur de reconstruction · v3</p>
       <h1 class="cat-titre">Un plan. <em>Une maison.</em></h1>
-      <p class="cat-sous">Déposez un plan architectural (image, SVG, ou jeu de données). Le moteur lit les murs, repère les ouvertures, déduit les pièces et génère la maquette à l'échelle. Le même plan produit le dessin coté et la visite.</p>
+      <p class="cat-sous">Déposez un plan architectural (image, SVG, ou jeu de données). Le moteur lit les murs, repère les ouvertures, déduit les pièces et génère une maquette à l'échelle, propre à ce plan : matières, végétation et lumière changent avec le lieu. Puis aménagez-la, ajoutez des équipements, des personnes, et basculez en mode nuit.</p>
     </div>
     <div class="r-grille">
       <section class="r-panneau">
@@ -1146,7 +1148,7 @@ function rendreReconstruction() {
         <div><span>01</span><h3>Vectorisation</h3><p>Le document est binarisé, puis les traits horizontaux et verticaux sont extraits, fusionnés et débruités. Chaque trait devient un mur.</p></div>
         <div><span>02</span><h3>Ouvertures</h3><p>Les interruptions du tracé sont interprétées : porte (2,12 m), fenêtre (allège 0,92 m), baie. Elles sont percées dans la maquette à la bonne hauteur.</p></div>
         <div><span>03</span><h3>Pièces</h3><p>Les volumes fermés sont remplis, mesurés et nommés. Le sol reçoit un matériau distinct selon l'usage.</p></div>
-        <div><span>04</span><h3>Maquette</h3><p>Extrusion des murs, linteaux, allèges, vitrages, mobilier à l'échelle, puis visite déambulatoire avec collisions.</p></div>
+        <div><span>04</span><h3>Maquette vivante</h3><p>Extrusion des murs, linteaux, allèges, vitrages et mobilier. Chaque bien reçoit son identité (matières, menuiseries, essences, bassin), puis s'aménage : équipements déplaçables, personnages à l'échelle, éclairage jour/nuit.</p></div>
       </div>
     </section>
     ${piedVue()}`;

@@ -307,20 +307,23 @@ function creerNiveau({ nom, surface, chambres, ratio, seed, etage }) {
   };
 }
 
-export function creerPlan({ seed, surface, chambres = 4, type = 'villa' }) {
+export function creerPlan({ seed, surface, chambres = 4, type = 'villa', niveaux: nbNiveaux = null }) {
   const s = typeof seed === 'string' ? hash(seed) : seed;
   const ratio = 1.12 + ((s % 100) / 100) * 0.55;
+  const t = String(type).toLowerCase();
+  // le nombre de niveaux annoncé dans la fiche pilote le plan : un plain-pied
+  // reste un plain-pied, un duplex ou un hôtel particulier a réellement deux plateaux.
+  const nb = Math.max(1, Math.round(nbNiveaux || (['villa', 'maison', 'chalet', 'duplex'].includes(t) ? 2 : 1)));
+  const surfaceNiveau = Math.max(1, Math.round(surface / nb));
   const niveaux = [];
-  const rdcSurface = Math.round(surface * (type === 'villa' || type === 'maison' || type === 'chalet' ? 0.62 : 1));
-  niveaux.push(creerNiveau({
-    nom: 'Rez-de-chaussée', surface: rdcSurface, chambres: Math.max(1, Math.round(chambres * 0.55)),
-    ratio, seed: s
-  }));
-  const multi = ['villa', 'maison', 'chalet', 'duplex'].includes(type);
-  if (multi) {
+  for (let i = 0; i < nb; i++) {
     niveaux.push(creerNiveau({
-      nom: 'Étage', surface: Math.max(42, surface - rdcSurface), chambres,
-      ratio, seed: s + 77, etage: 1
+      nom: i === 0 ? 'Rez-de-chaussée' : `Étage ${i}`,
+      surface: surfaceNiveau,
+      chambres: i === 0 ? Math.max(1, Math.round(chambres * (nb > 1 ? 0.55 : 1))) : chambres,
+      ratio,
+      seed: s + i * 77,
+      ...(i > 0 ? { etage: i } : {})
     }));
   }
   const total = niveaux.reduce((a, n) => a + n.surface, 0);
@@ -653,7 +656,7 @@ function etoiles(i) { return AGENTS[i % AGENTS.length]; }
 
 export const BIENS = A.map((b, i) => {
   const photos = Array.from(new Set(b.images));
-  const plan = creerPlan({ seed: b.id, surface: b.surface, chambres: b.chambres, type: b.type });
+  const plan = creerPlan({ seed: b.id, surface: b.surface, chambres: b.chambres, type: b.type, niveaux: b.niveaux });
   const prixM2 = b.transaction === 'vente' ? Math.round(b.prix / b.surface) : null;
   const loyerM2 = b.transaction === 'location' ? Math.round(b.prix / b.surface) : null;
   return {
