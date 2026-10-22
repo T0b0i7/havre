@@ -599,8 +599,30 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
       <div class="entete-bloc">
         <h2>Le catalogue, en grand.</h2>
         <p><span data-compte="biens">28</span> adresses visitées, dont Paris, Biarritz et Hossegor. Chacune avec son plan et sa visite 3D. La recherche accepte une ville, un quartier, un type — ou votre position.</p>
-        <p class="cat-explication"><b>Plan en 3D</b> — Envoyez le plan d'un bien, nous le transformons en visite 3D. <a href="#/reconstruire">Essayer</a></p>
       </div>
+      <a class="plan3d" href="#/reconstruire" aria-label="Plan en 3D : envoyer le plan d'un bien et le transformer en visite 3D">
+        <span class="plan3d-figure" aria-hidden="true">
+          <svg viewBox="0 0 240 168" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round">
+            <rect class="p3d-trace p3d-trace--1" x="14" y="14" width="212" height="140" rx="4"/>
+            <path class="p3d-trace p3d-trace--2" d="M120 14V86M120 126v28M14 86h58M96 86h130"/>
+            <path class="p3d-mur" d="M120 86v40"/>
+            <path class="p3d-escalier" d="M150 118h34M150 126h34M150 134h34"/>
+            <circle class="p3d-point" cx="52" cy="52" r="3"/>
+          </svg>
+          <span class="plan3d-facette"></span>
+          <span class="plan3d-badge">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 2.6 21 7.5v9L12 21.4 3 16.5v-9z"/>
+              <path d="M12 12.1 21 7.5M12 12.1 3 7.5M12 12.1v9.3"/>
+            </svg>
+          </span>
+        </span>
+        <span class="plan3d-corps">
+          <span class="plan3d-eyebrow">Plan en 3D</span>
+          <span class="plan3d-titre">Envoyez le plan d'un bien, nous le transformons en visite 3D.</span>
+          <span class="plan3d-lien">Essayer <i aria-hidden="true">→</i></span>
+        </span>
+      </a>
       <div class="vitrine" id="vitrineAdresses" aria-busy="true">
         <div class="vitrine-carte squelette" aria-hidden="true"><div class="sq-img"></div><div class="sq-corps"><span></span><span></span><span></span></div></div>
         <div class="vitrine-carte squelette" aria-hidden="true"><div class="sq-img"></div><div class="sq-corps"><span></span><span></span><span></span></div></div>

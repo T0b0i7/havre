@@ -122,15 +122,104 @@ html.vue-ouverte{ overflow:hidden; }
 .lien-action:hover{ border-bottom-color:var(--encre); }
 .lien-action:focus-visible{ outline:2px solid var(--encre); outline-offset:4px; }
 
-/* ── explication « Plan en 3D » sous le catalogue ── */
-.cat-explication{
-  margin-top:.9rem; display:inline-block;
-  font-size:.88rem; color:#26324A;
-  background:rgba(42,85,196,.07); border:1px solid rgba(42,85,196,.16);
-  border-radius:999px; padding:.5rem 1rem;
+/* ── bloc « Plan en 3D » sous le catalogue ── */
+.plan3d{
+  position:relative; display:grid; grid-template-columns:minmax(180px,240px) minmax(0,1fr);
+  gap:clamp(1.4rem,3.4vw,2.8rem);
+  align-items:center;
+  margin-bottom:clamp(1.6rem,3.4vw,2.6rem);
+  padding:clamp(1.2rem,2.6vw,1.8rem);
+  background:linear-gradient(120deg, #F2F7FF 0%, #E7F0FF 58%, #DCE9FF 100%);
+  border:1px solid rgba(42,85,196,.16);
+  border-radius:var(--r);
+  overflow:hidden;
+  text-decoration:none; color:var(--encre);
+  transition:transform .45s cubic-bezier(.2,.7,.2,1), box-shadow .45s, border-color .35s;
 }
-.cat-explication b{ font-weight:600; }
-.cat-explication a{ color:var(--accent); font-weight:600; text-underline-offset:3px; }
+.plan3d::before{
+  content:""; position:absolute; inset:0; pointer-events:none;
+  background:
+    radial-gradient(60% 120% at 88% 8%, rgba(42,85,196,.14), transparent 62%),
+    linear-gradient(0deg, rgba(255,255,255,.35), rgba(255,255,255,0));
+}
+.plan3d:hover{
+  transform:translateY(-3px);
+  border-color:rgba(42,85,196,.34);
+  box-shadow:0 34px 70px -46px rgba(18,38,84,.5), 0 4px 14px -8px rgba(18,38,84,.12);
+}
+.plan3d:focus-visible{ outline:2px solid var(--encre); outline-offset:4px; }
+
+/* vignette : plan qui se trace */
+.plan3d-figure{
+  position:relative; display:block; aspect-ratio:240/168;
+  color:rgba(42,85,196,.5);
+  background:
+    linear-gradient(135deg, rgba(255,255,255,.9), rgba(255,255,255,.45));
+  border:1px solid rgba(255,255,255,.85);
+  border-radius:calc(var(--r-s) + 4px);
+  box-shadow:inset 0 0 0 1px rgba(42,85,196,.08), 0 18px 34px -30px rgba(18,38,84,.55);
+  overflow:hidden;
+}
+.plan3d-figure::before{
+  content:""; position:absolute; inset:0;
+  background-image:
+    linear-gradient(rgba(42,85,196,.07) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(42,85,196,.07) 1px, transparent 1px);
+  background-size:20px 20px;
+  -webkit-mask-image:linear-gradient(160deg, #000, rgba(0,0,0,.25));
+  mask-image:linear-gradient(160deg, #000, rgba(0,0,0,.25));
+}
+.plan3d-figure svg{ position:absolute; inset:0; width:100%; height:100%; }
+.p3d-trace{
+  stroke-dasharray:520; stroke-dashoffset:520;
+  transition:stroke-dashoffset 1.1s cubic-bezier(.4,.1,.2,1);
+}
+.p3d-trace--2{ stroke-dasharray:420; stroke-dashoffset:420; transition-delay:.18s; }
+.plan3d:hover .p3d-trace{ stroke-dashoffset:0; }
+.p3d-mur{ stroke:var(--accent); stroke-width:3; }
+.p3d-escalier{ stroke:rgba(42,85,196,.45); }
+.p3d-point{ fill:var(--accent); stroke:none; opacity:.55; }
+/* facette : petit volume 3D suggéré */
+.plan3d-facette{
+  position:absolute; right:16%; bottom:16%; width:34%; height:30%;
+  border-radius:6px;
+  background:linear-gradient(140deg, rgba(42,85,196,.24), rgba(42,85,196,.05));
+  box-shadow:inset 0 0 0 1px rgba(42,85,196,.34);
+  transform:skewY(-16deg) translateY(6px);
+}
+.plan3d-badge{
+  position:absolute; left:.75rem; top:.75rem;
+  display:grid; place-items:center;
+  width:38px; height:38px; border-radius:12px;
+  color:#fff; background:var(--accent);
+  box-shadow:0 12px 24px -14px rgba(42,85,196,.9);
+}
+.plan3d-badge svg{ width:20px; height:20px; position:static; }
+
+.plan3d-corps{ position:relative; display:grid; gap:.55rem; align-content:center; }
+.plan3d-eyebrow{
+  font-size:.7rem; font-weight:600; letter-spacing:.16em; text-transform:uppercase;
+  color:var(--accent);
+}
+.plan3d-titre{
+  font-family:var(--serif); font-weight:500;
+  font-size:clamp(1.15rem,2.4vw,1.7rem); line-height:1.22; letter-spacing:-.012em;
+  color:var(--encre); max-width:34ch;
+}
+.plan3d-lien{
+  display:inline-flex; align-items:center; gap:.5rem;
+  margin-top:.2rem; width:max-content;
+  font-size:.88rem; font-weight:600; color:var(--encre);
+  border-bottom:1px solid rgba(17,30,49,.28); padding-bottom:2px;
+  transition:border-color .3s ease;
+}
+.plan3d-lien i{ font-style:normal; transition:transform .35s cubic-bezier(.2,.7,.2,1); }
+.plan3d:hover .plan3d-lien{ border-bottom-color:var(--encre); }
+.plan3d:hover .plan3d-lien i{ transform:translateX(4px); }
+@media (prefers-reduced-motion: reduce){
+  .p3d-trace{ stroke-dashoffset:0; transition:none; }
+  .plan3d:hover .plan3d-lien i{ transform:none; }
+}
 
 /* ── présentation de l'agence + équipe ── */
 .agence-presentation{
@@ -1129,6 +1218,8 @@ html.vue-ouverte{ overflow:hidden; }
 }
 
 @media (max-width: 960px){
+  .plan3d{ grid-template-columns:1fr; }
+  .plan3d-figure{ max-width:340px; }
   .agence-presentation{ grid-template-columns:1fr; }
   .ml-ligne{ grid-template-columns:1fr; gap:.2rem; }
   .fiche-galerie{ grid-template-columns:1fr; }
