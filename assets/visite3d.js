@@ -7,6 +7,7 @@
    ══════════════════════════════════════════════════════════════════ */
 import * as THREE from 'three';
 import { identiteDe, creerArbre, creerPersonnage, creerEquipement } from './ambiance.js';
+import { mulberry32, hash } from './utils.js';
 
 const H_MUR = 2.75;
 const R_JEU = 0.28;
@@ -15,19 +16,15 @@ const R_JEU = 0.28;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 
-function hashTexte(s) {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
-  return h >>> 0;
-}
-function rng(seed) {
-  let a = seed >>> 0;
-  return () => {
-    a = (a + 0x6D2B79F5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
+/* ── alias locaux pour la lisibilité du code 3D ── */
+const hashTexte = hash;
+const rng = mulberry32;
+
+/* ── cache des textures procédurales (partagé entre visites successives) ── */
+const _texCache = new Map();
+function texCachee(cle, fn) {
+  if (!_texCache.has(cle)) _texCache.set(cle, fn());
+  return _texCache.get(cle);
 }
 
 /* ── textures procédurales (aucune dépendance externe) ── */
@@ -271,16 +268,16 @@ function materiaux(id) {
     return chantier({ map: texSable('#8FA27E'), roughness: 1 });
   })();
   return {
-    enduit: chantier({ map: texEnduit(), color: P.mur, roughness: 0.94 }),
-    enduitExt: chantier({ map: texEnduit(), color: P.ext, roughness: 0.96 }),
+    enduit: chantier({ map: texCachee('enduit', texEnduit), color: P.mur, roughness: 0.94 }),
+    enduitExt: chantier({ map: texCachee('enduit', texEnduit), color: P.ext, roughness: 0.96 }),
     murCoupe: chantier({ color: 0x232D3E, roughness: 0.8 }),
-    bois: chantier({ map: texBois(P.bois[0], P.bois[1]), roughness: 0.56 }),
-    boisClair: chantier({ map: texBois(P.bois[0], P.bois[1]), color: 0xF2E4CD, roughness: 0.52 }),
-    parquet: chantier({ map: texBois(P.parquet[0], P.parquet[1]), roughness: 0.52 }),
-    pierre: chantier({ map: texCarrelage(P.pierre[0], P.pierre[1], 3), roughness: 0.72 }),
-    marbre: chantier({ map: texCarrelage('#F0ECE3', '#D7D0C4', 2), roughness: 0.34 }),
-    carreaux: chantier({ map: texCarrelage('#E5E8E7', '#C9CFCE', 5), roughness: 0.5 }),
-    beton: chantier({ map: texSable('#CFC9BE'), roughness: 0.88 }),
+    bois: chantier({ map: texCachee(`bois|${P.bois[0]}|${P.bois[1]}`, () => texBois(P.bois[0], P.bois[1])), roughness: 0.56 }),
+    boisClair: chantier({ map: texCachee(`bois|${P.bois[0]}|${P.bois[1]}`, () => texBois(P.bois[0], P.bois[1])), color: 0xF2E4CD, roughness: 0.52 }),
+    parquet: chantier({ map: texCachee(`bois|${P.parquet[0]}|${P.parquet[1]}`, () => texBois(P.parquet[0], P.parquet[1])), roughness: 0.52 }),
+    pierre: chantier({ map: texCachee(`carrelage|${P.pierre[0]}|${P.pierre[1]}|3`, () => texCarrelage(P.pierre[0], P.pierre[1], 3)), roughness: 0.72 }),
+    marbre: chantier({ map: texCachee('carrelage|#F0ECE3|#D7D0C4|2', () => texCarrelage('#F0ECE3', '#D7D0C4', 2)), roughness: 0.34 }),
+    carreaux: chantier({ map: texCachee('carrelage|#E5E8E7|#C9CFCE|5', () => texCarrelage('#E5E8E7', '#C9CFCE', 5)), roughness: 0.5 }),
+    beton: chantier({ map: texCachee('sable|#CFC9BE', () => texSable('#CFC9BE')), roughness: 0.88 }),
     tapis: tapis(0),
     tissu: tissuMat(0),
     tissuNuit: tissuMat(1, 0x8E9AAE),
@@ -300,9 +297,9 @@ function materiaux(id) {
     terre: chantier({ color: 0x6E5B45, roughness: 1 }),
     pelouse: solExt,
     solExt,
-    sable: chantier({ map: texSable('#D8C6A4'), roughness: 1 }),
-    pavage: chantier({ map: texCarrelage('#D8D1C4', '#C1B9AB', 3), roughness: 0.92 }),
-    dalle: chantier({ map: texCarrelage('#DAD5CB', '#C3BDB1', 2), roughness: 0.9 })
+    sable: chantier({ map: texCachee('sable|#D8C6A4', () => texSable('#D8C6A4')), roughness: 1 }),
+    pavage: chantier({ map: texCachee('carrelage|#D8D1C4|#C1B9AB|3', () => texCarrelage('#D8D1C4', '#C1B9AB', 3)), roughness: 0.92 }),
+    dalle: chantier({ map: texCachee('carrelage|#DAD5CB|#C3BDB1|2', () => texCarrelage('#DAD5CB', '#C3BDB1', 2)), roughness: 0.9 })
   };
 }
 
@@ -1658,7 +1655,13 @@ export class Visite {
       if (o.geometry) o.geometry.dispose();
       if (o.material) {
         const mats = Array.isArray(o.material) ? o.material : [o.material];
-        mats.forEach(m => { if (m.map) m.map.dispose(); m.dispose(); });
+        mats.forEach(m => {
+          // ne pas disposer les textures partagées dans le cache module
+          if (m.map && !_texCache.has([..._texCache.entries()].find(([, v]) => v === m.map)?.[0] ?? '')) {
+            m.map.dispose();
+          }
+          m.dispose();
+        });
       }
     });
     this.renderer.dispose();
@@ -1962,16 +1965,20 @@ export function analyserSVGPlan(texte, opts = {}) {
 }
 
 /** assemble un plan complet à partir de murs détectés */
-export function planDepuisMurs(murs, W, D, { nom = 'Rez-de-chaussée' } = {}) {
-  const pieces = deduirePieces(murs, W, D);
-  if (!pieces.length) {
-    pieces.push({ x: 0.2, z: 0.2, w: W - 0.4, d: D - 0.4, type: 'sejour', nom: 'Séjour', couleur: '#F4E9DA' });
+export function planDepuisMurs(murs, W, D, { nom = 'Rez-de-chaussée', pieces = null } = {}) {
+  const piecesFinales = (pieces && pieces.length) ? pieces : deduirePieces(murs, W, D);
+  if (!piecesFinales.length) {
+    piecesFinales.push({ x: 0.2, z: 0.2, w: W - 0.4, d: D - 0.4, type: 'sejour', nom: 'Séjour', couleur: '#F4E9DA' });
   }
+  // s'assure que chaque mur possède au moins le tableau d'ouvertures
+  murs.forEach(m => {
+    if (!m.ouvertures) m.ouvertures = [];
+  });
   return {
     niveaux: [{
       nom, largeur: +W.toFixed(2), profondeur: +D.toFixed(2),
       surface: +(W * D).toFixed(1),
-      pieces, murs
+      pieces: piecesFinales, murs
     }],
     surface: Math.round(W * D),
     importe: true

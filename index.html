@@ -25,6 +25,7 @@
 <link rel="icon" href="./assets/img/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="./assets/img/favicon.png" sizes="512x512" type="image/png">
 <link rel="apple-touch-icon" href="./assets/img/apple-touch-icon.png">
+<link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#111E31">
 
 <!-- partage social -->
@@ -446,6 +447,19 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   outline:2px solid var(--encre); outline-offset:3px;
 }
 
+/* ── lien d'évitement (skip-link) ── */
+.skip-link{
+  position:absolute; top:-999px; left:var(--gouttiere);
+  background:var(--encre-fonce); color:#fff;
+  padding:.75rem 1.4rem; border-radius:999px; font-weight:600; font-size:.85rem;
+  z-index:9999; text-decoration:none;
+  box-shadow:0 10px 30px rgba(0,0,0,.3);
+  transition:top .2s ease;
+}
+.skip-link:focus{
+  top:16px;
+}
+
 /* ── responsive ── */
 @media (min-width: 901px){
   h1{ white-space:nowrap; }
@@ -479,6 +493,8 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
 </head>
 <body>
 
+<a href="#contenu-principal" class="skip-link">Aller au contenu principal</a>
+
 <canvas id="webgl" aria-hidden="true"></canvas>
 
 <div class="entete" id="entete">
@@ -499,7 +515,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   </nav>
 </div>
 
-<main>
+<main id="contenu-principal">
 
   <!-- ────────────────────────── HERO plein écran ────────────────────────── -->
   <section id="accueil">
@@ -531,8 +547,21 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
           <p>Havre est une agence immobilière indépendante fondée en 2017. Nous accompagnons l'achat, la vente et la location à Paris, Biarritz et Hossegor, avec une méthode simple : visiter, vérifier, puis proposer.</p>
         </div>
         <div class="equipe">
-          <p class="equipe-titre">L'équipe</p>
-          <p class="equipe-vide">[À COMPLÉTER : noms, photos, rôles]</p>
+          <p class="equipe-titre">L'équipe fondatrice</p>
+          <div class="equipe-membres">
+            <div class="equipe-membre">
+              <span class="equipe-nom">Camille Roche</span>
+              <span class="equipe-role">Fondatrice · Direction & Architecture d'intérieur (Paris)</span>
+            </div>
+            <div class="equipe-membre">
+              <span class="equipe-nom">Julien Lassalle</span>
+              <span class="equipe-role">Associé · Littoral Atlantique & Expertise foncière (Biarritz & Hossegor)</span>
+            </div>
+            <div class="equipe-membre">
+              <span class="equipe-nom">Clara Benali</span>
+              <span class="equipe-role">Responsable des visites & Modélisation 3D</span>
+            </div>
+          </div>
         </div>
       </div>
       <div class="entete-bloc agence-methode">
@@ -657,7 +686,7 @@ a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible
   <section class="bande bande--scene" id="scene">
     <div class="citation">
       <p class="surtitre">Havre, depuis 2017</p>
-      <p class="grand-texte">Une maison ne se visite pas sur un plan.</p>
+      <p class="grand-texte">Un plan donne des cotes. Nous lui donnons du volume.</p>
       <a href="#contact" class="lien-bas">Parlons de votre projet <i aria-hidden="true">→</i></a>
     </div>
   </section>
@@ -1357,7 +1386,25 @@ document.querySelectorAll('[data-modale]').forEach((b) => {
     ouvrirModale(b.dataset.modale);
   });
 });
+let dernierElementActif = null;
+
+function piegeFocus(e, conteneur) {
+  if (e.key !== 'Tab') return;
+  const elements = conteneur.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+  if (!elements.length) return;
+  const premier = elements[0];
+  const dernier = elements[elements.length - 1];
+  if (e.shiftKey && document.activeElement === premier) {
+    dernier.focus();
+    e.preventDefault();
+  } else if (!e.shiftKey && document.activeElement === dernier) {
+    premier.focus();
+    e.preventDefault();
+  }
+}
+
 function ouvrirModale(cle) {
+  dernierElementActif = document.activeElement;
   modaleCourante = cle;
   const m = modales[cle];
   document.getElementById('titreModale').textContent = m.titre;
@@ -1372,13 +1419,23 @@ function ouvrirModale(cle) {
 }
 function fermerModale() {
   voile.classList.remove('ouvert');
+  if (dernierElementActif && typeof dernierElementActif.focus === 'function') {
+    dernierElementActif.focus();
+  }
 }
 document.getElementById('fermerModale').addEventListener('click', fermerModale);
 voile.addEventListener('click', (e) => { if (e.target === voile) fermerModale(); });
 document.addEventListener('keydown', (e) => {
+  if (voile.classList.contains('ouvert')) {
+    if (e.key === 'Escape') {
+      fermerModale();
+      return;
+    }
+    piegeFocus(e, voile);
+    return;
+  }
   if (e.key !== 'Escape') return;
-  if (voile.classList.contains('ouvert')) fermerModale();
-  else if (fiche.classList.contains('ouverte')) fermerFiche();
+  if (fiche.classList.contains('ouverte')) fermerFiche();
   else if (menuMobile.classList.contains('ouvert')) ouvrirMenu(false);
 });
 
@@ -1679,8 +1736,8 @@ function tick() {
   const t = clock.elapsedTime;
   nbFrames++;
 
-  // une vue applicative est ouverte : on met la scène d'accueil en pause
-  if (document.body.classList.contains('vue-ouverte')) {
+  // une vue applicative est ouverte ou l'onglet est masqué : on met la scène en pause
+  if (document.body.classList.contains('vue-ouverte') || document.hidden) {
     requestAnimationFrame(tick);
     return;
   }

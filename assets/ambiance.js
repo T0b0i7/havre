@@ -5,23 +5,9 @@
    l'identité vient s'y poser, jamais l'inverse.
    ══════════════════════════════════════════════════════════════════ */
 import * as THREE from 'three';
+import { mulberry32, hash, normaliser } from './utils.js';
 
-const norm = (s = '') => String(s)
-  .normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-
-function hash(s) {
-  let h = 2166136261;
-  for (let i = 0; i < String(s).length; i++) { h ^= String(s).charCodeAt(i); h = Math.imul(h, 16777619); }
-  return h >>> 0;
-}
-function mulberry32(a) {
-  return function () {
-    a |= 0; a = a + 0x6D2B79F5 | 0;
-    let t = Math.imul(a ^ a >>> 15, 1 | a);
-    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t;
-    return ((t ^ t >>> 14) >>> 0) / 4294967296;
-  };
-}
+const norm = normaliser;
 
 const E = {
   tv: true, biblio: false, bureau: false, table: true,

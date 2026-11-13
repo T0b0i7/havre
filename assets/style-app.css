@@ -227,12 +227,33 @@ html.vue-ouverte{ overflow:hidden; }
   gap:clamp(1.4rem,4vw,3.4rem); align-items:start;
 }
 .equipe{
-  border:1px dashed var(--trait); border-radius:18px;
-  padding:1.2rem 1.3rem; background:#FBFCFF;
+  border:1px solid var(--trait); border-radius:18px;
+  padding:1.4rem 1.5rem; background:rgba(255,255,255,.7);
+  box-shadow:0 8px 24px -14px rgba(18,38,84,.15);
 }
 .equipe-titre{
   font-size:.74rem; font-weight:600; letter-spacing:.1em;
-  text-transform:uppercase; color:var(--gris);
+  text-transform:uppercase; color:var(--gris); margin-bottom:.8rem;
+}
+.equipe-membres{
+  display:flex; flex-direction:column; gap:1rem;
+}
+.equipe-membre{
+  display:flex; flex-direction:column; gap:.15rem;
+  border-bottom:1px solid rgba(17,30,49,.06);
+  padding-bottom:.75rem;
+}
+.equipe-membre:last-child{
+  border-bottom:0; padding-bottom:0;
+}
+.equipe-nom{
+  font-family:var(--serif); font-size:1.05rem; font-weight:500; color:var(--encre);
+}
+.equipe-role{
+  font-size:.82rem; color:var(--gris);
+}
+.equipe-contact{
+  font-size:.78rem; color:var(--bleu); text-decoration:none; margin-top:.2rem;
 }
 .equipe-vide{ margin-top:.6rem; color:var(--gris); font-size:.9rem; line-height:1.6; }
 .agence-methode{ margin-top:clamp(2rem,5vw,3.4rem); }
@@ -1394,6 +1415,50 @@ html.vue-ouverte{ overflow:hidden; }
 @media (prefers-reduced-motion: reduce){
   .vue, .toast-havre, .toast-geo{ animation:none !important; }
 }
+
+/* ── styles métré carrez & stepper d'analyse ── */
+.r-carrez-bloc{
+  grid-column:1 / -1;
+  background:#fff; border:1px solid rgba(17,30,49,.08); border-radius:14px;
+  padding:1rem 1.2rem; margin-top:.6rem;
+}
+.r-carrez-entete{
+  display:flex; justify-content:space-between; align-items:center;
+  margin-bottom:.8rem; border-bottom:1px solid rgba(17,30,49,.06); padding-bottom:.5rem;
+}
+.r-carrez-entete b{ font-size:.9rem; color:var(--encre); }
+.btn-copier-carrez{
+  background:transparent; border:1px solid rgba(17,30,49,.15); border-radius:999px;
+  font-size:.75rem; font-weight:600; padding:.3rem .8rem; cursor:pointer;
+  transition:all .2s ease;
+}
+.btn-copier-carrez:hover{ background:var(--encre); color:#fff; }
+.r-carrez-liste{ display:flex; flex-direction:column; gap:.4rem; }
+.r-carrez-ligne{
+  display:flex; justify-content:space-between; align-items:center;
+  font-size:.85rem; color:var(--gris);
+}
+.r-carrez-ligne b{ color:var(--encre); font-weight:600; }
+.r-carrez-ligne small{ color:var(--gris-clair); font-weight:400; margin-left:.3rem; }
+
+/* stepper ia */
+.stepper-ia{
+  display:flex; flex-direction:column; gap:.5rem;
+  padding:.8rem 0; margin-top:.4rem;
+}
+.stepper-etape{
+  display:flex; align-items:center; gap:.7rem;
+  font-size:.86rem; color:var(--gris-clair);
+  transition:color .3s ease;
+}
+.stepper-etape.active{ color:var(--bleu); font-weight:600; }
+.stepper-etape.faite{ color:var(--encre); }
+.stepper-point{
+  width:8px; height:8px; border-radius:50%; background:#CCD6E6;
+  transition:all .3s ease;
+}
+.stepper-etape.active .stepper-point{ background:var(--bleu); transform:scale(1.4); box-shadow:0 0 8px rgba(42,85,196,.5); }
+.stepper-etape.faite .stepper-point{ background:#2DB875; }
 
 /* ── le chrome de la landing doit passer au-dessus des vues ── */
 body.vue-ouverte .menu-mobile{ z-index:85; }

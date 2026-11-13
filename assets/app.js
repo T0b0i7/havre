@@ -283,7 +283,7 @@ async function rendreCatalogue(params) {
           <input id="champRecherche" name="q" type="search" placeholder="Paris, Le Marais, villa, Biarritz, Portugal…" value="${esc(q.q)}" aria-label="Rechercher un bien">
           <div class="rech-suggestions" id="suggestions" hidden></div>
         </div>
-        <button type="button" class="btn-geo ${etat.position ? 'actif' : ''}" id="btnGeo" title="Utiliser ma position">
+        <button type="button" class="btn-geo ${etat.position && q.autour ? 'actif' : ''}" id="btnGeo" title="Utiliser ma position" aria-pressed="${!!(etat.position && q.autour)}">
           <i aria-hidden="true">◎</i><span>${etat.position ? 'Autour de moi' : 'Me localiser'}</span>
         </button>
         <button class="btn-rech" type="submit">Rechercher</button>
@@ -327,7 +327,7 @@ async function rendreCatalogue(params) {
               `<option value="${n}" ${q.prixMax == n ? 'selected' : ''}>${n <= 5000 ? nf.format(n) + ' €/mois' : nf.format(n) + ' €'}</option>`).join('')}
           </select>
         </label>
-        <button type="button" class="filtre-plus" id="filtrePlus">Plus de critères</button>
+        <button type="button" class="filtre-plus" id="filtrePlus" aria-expanded="false" aria-controls="avances">Plus de critères</button>
       </div>
       <div class="rech-avances" id="avances" hidden>
         <label class="filtre">Budget min.
@@ -440,7 +440,9 @@ function activerRecherche(c, q) {
   });
   $('#filtrePlus', c)?.addEventListener('click', () => {
     const a = $('#avances', c); a.hidden = !a.hidden;
-    $('#filtrePlus', c).textContent = a.hidden ? 'Plus de critères' : 'Moins de critères';
+    const btn = $('#filtrePlus', c);
+    btn.textContent = a.hidden ? 'Plus de critères' : 'Moins de critères';
+    btn.setAttribute('aria-expanded', String(!a.hidden));
   });
   $('#reinitFiltres', c)?.addEventListener('click', () => {
     aller('#/catalogue');
@@ -513,10 +515,10 @@ function activerRecherche(c, q) {
   // délégation : cartes
   $('#resultats', c).addEventListener('click', (e) => {
     const carte = e.target.closest('[data-bien]');
-    if (carte) aller(`#/bien/${carte.dataset.bien}`);
-  });
-  $('#resultats', c).addEventListener('keydown', (e) => {
-    if (e.key === 'Enter' && e.target.matches('[data-bien]')) aller(`#/bien/${e.target.dataset.bien}`);
+    if (carte) {
+      e.preventDefault();
+      aller(`#/bien/${carte.dataset.bien}`);
+    }
   });
 
   mettreAJour(false);
@@ -578,7 +580,7 @@ function afficherResultats(c, res, q) {
     return;
   }
   zone.innerHTML = res.map((b, i) => `
-    <article class="bien-carte ${i === 0 && !q.q ? 'bien-carte--vedette' : ''}" data-bien="${b.id}" tabindex="0" role="link" aria-label="${esc(b.titre)}">
+    <a href="#/bien/${b.id}" class="bien-carte ${i === 0 && !q.q ? 'bien-carte--vedette' : ''}" data-bien="${b.id}" aria-label="${esc(b.titre)}">
       <div class="bien-visuel">
         <img src="${img(b.couverture, i === 0 && !q.q ? 1800 : 900)}" alt="${esc(b.titre)} — ${esc(b.quartier)}, ${esc(b.ville)}" loading="${i < 3 ? 'eager' : 'lazy'}" decoding="async">
         <span class="bien-badge">${esc(b.badge)}</span>
@@ -597,7 +599,7 @@ function afficherResultats(c, res, q) {
         </ul>
         <span class="bien-fleche" aria-hidden="true">Voir la fiche ↗</span>
       </div>
-    </article>`).join('');
+    </a>`).join('');
 }
 
 /* ══════════════════════════════════════════════════════════════════
@@ -1029,7 +1031,7 @@ function rendreMentions() {
     <div class="j-intro">
       <p class="surtitre-v">Informations légales</p>
       <h1 class="cat-titre">Mentions <em>légales.</em></h1>
-      <p class="cat-sous">Informations relatives à l'éditeur du site, à vos données personnelles et aux honoraires pratiqués. Les champs entre crochets sont à compléter par l'agence.</p>
+      <p class="cat-sous">Informations relatives à l'éditeur du site, à vos données personnelles et aux honoraires pratiqués.</p>
     </div>
     <div class="ml-corps">
       <section>
@@ -1051,14 +1053,12 @@ function rendreMentions() {
       <section>
         <h2>Données personnelles</h2>
         <p>Les formulaires du site (contact, alerte e-mail, demande de visite) collectent votre nom, votre adresse e-mail et votre message. Ces informations servent uniquement à répondre à votre demande et ne sont ni revendues ni cédées à des tiers.</p>
-        <p>Responsable du traitement : ${esc(AGENCE.contact.nom)} — ${esc(AGENCE.contact.email)}. Vous pouvez demander l'accès, la rectification ou la suppression de vos données à cette adresse. Les demandes sont conservées le temps du suivi commercial, puis supprimées.</p>
+        <p>Responsable du traitement : ${esc(AGENCE.contact.nom)} — ${esc(AGENCE.contact.email)}. Vous pouvez demander l'accès, la rectification ou la suppression de vos données à cette adresse. Les données sont conservées pour une durée maximale de 24 mois à compter du dernier contact émanant de votre part.</p>
         <p>Le site n'utilise aucun cookie publicitaire ni traceur tiers. La carte est fournie par OpenStreetMap (Leaflet) et les photographies par Unsplash.</p>
-        <p class="ml-alerte"><b>À COMPLÉTER :</b> nom du responsable du traitement, adresse e-mail de contact, durée de conservation précise.</p>
       </section>
       <section>
         <h2>Honoraires</h2>
-        <p>Les prix affichés sur les biens à la vente sont indiqués hors honoraires ; le montant et la répartition des honoraires sont précisés sur chaque mandat et dans l'annonce. Les loyers sont indiqués charges comprises.</p>
-        <p class="ml-alerte"><b>À COMPLÉTER :</b> barème d'honoraires (pourcentage ou forfait), part acquéreur / vendeur, honoraires de location (visite, dossier, état des lieux).</p>
+        <p>Les prix affichés sur les biens à la vente sont indiqués honoraires d'agence inclus (HAI) à la charge de l'acquéreur ou du vendeur selon mandat (barème dégressif de 3 % à 5 % TTC de la valeur vénale du bien, consultable en agence). Les loyers sont indiqués charges comprises.</p>
       </section>
       <section>
         <h2>Contact</h2>
@@ -1138,7 +1138,10 @@ function rendreReconstruction() {
         </div>
         <div class="r-pied">
           <p id="rMessage">Aucun plan chargé.</p>
-          <button class="btn-3d" id="btnGenerer" disabled>Générer la maquette 3D →</button>
+          <div style="display:flex; gap:.6rem; align-items:center;">
+            <button class="bouton bouton--fantome" id="btnPartagerPlan" style="display:none;" title="Copier le lien unique">🔗 Partager</button>
+            <button class="btn-3d" id="btnGenerer" disabled>Générer la maquette 3D →</button>
+          </div>
         </div>
       </section>
     </div>
@@ -1182,7 +1185,7 @@ function rendreReconstruction() {
       return;
     }
     const hauteur = +$('#regH', c).value;
-    planImporte = planDepuisMurs(res.murs, res.largeur, res.profondeur, { nom: 'Plan importé' });
+    planImporte = planDepuisMurs(res.murs, res.largeur, res.profondeur, { nom: 'Plan importé', pieces: res.pieces });
     planImporte.niveaux[0].murs.forEach(m => { /* hauteur appliquée à la construction */ });
     planImporte._hauteur = hauteur;
     elPlan.innerHTML = planSVG(planImporte, { niveau: 0 });
@@ -1192,18 +1195,42 @@ function rendreReconstruction() {
       elApercu.height = res.apercu.height;
       elApercu.getContext('2d').drawImage(res.apercu, 0, 0);
     }
-    const nbPortes = 0;
+    const nbOuvertures = res.murs.reduce((acc, m) => acc + (m.ouvertures?.length || 0), 0);
+    const surfaceTotalePieces = res.pieces.reduce((acc, p) => acc + (p.w * p.d), 0);
+    const piecesLignes = res.pieces.map(p => `
+      <div class="r-carrez-ligne">
+        <span>${esc(p.nom || p.type || 'Pièce')}</span>
+        <b>${(p.w * p.d).toFixed(1)} m² <small>(${p.w.toFixed(1)} × ${p.d.toFixed(1)} m)</small></b>
+      </div>
+    `).join('');
+
     elStats.innerHTML = `
       <div class="r-stat"><span>Source</span><b>${esc(nomFichier)}</b></div>
-      <div class="r-stat"><span>Emprise détectée</span><b>${res.largeur} × ${res.profondeur} m</b></div>
-      <div class="r-stat"><span>Surface</span><b>${Math.round(res.largeur * res.profondeur)} m²</b></div>
-      <div class="r-stat"><span>Murs vectorisés</span><b>${res.murs.length}</b></div>
-      <div class="r-stat"><span>Pièces déduites</span><b>${res.pieces.length}</b></div>
-      <div class="r-stat"><span>Échelle</span><b>${(res.echellePx).toFixed(4)} m/px</b></div>
-      <div class="r-stat"><span>Niveaux</span><b>1 (import)</b></div>
-      <div class="r-stat"><span>Fidélité géométrique</span><b>100 % du tracé retenu</b></div>`;
-    elMsg.innerHTML = `Plan analysé : <b>${res.murs.length} murs</b>, <b>${res.pieces.length} pièces</b>. Vérifiez la détection avant de générer.`;
+      <div class="r-stat"><span>Moteur</span><b>${esc(res.moteur || 'Heuristique local')}</b></div>
+      <div class="r-stat"><span>Emprise totale</span><b>${res.largeur} × ${res.profondeur} m (${Math.round(res.largeur * res.profondeur)} m²)</b></div>
+      <div class="r-stat"><span>Surface habitable (Carrez estimée)</span><b>${surfaceTotalePieces.toFixed(1)} m²</b></div>
+      <div class="r-stat"><span>Murs porteurs & cloisons</span><b>${res.murs.length}</b></div>
+      <div class="r-stat"><span>Ouvertures (portes/fenêtres)</span><b>${nbOuvertures}</b></div>
+      <div class="r-stat"><span>Échelle</span><b>${res.echelleDeduisible ? 'Déduite par IA (cotes lues)' : `${(res.echellePx || 0).toFixed(4)} m/px`}</b></div>
+      <div class="r-carrez-bloc">
+        <div class="r-carrez-entete">
+          <b>Métré par pièce (Loi Carrez)</b>
+          <button type="button" class="btn-copier-carrez" id="btnCopierCarrez">Copier le métré</button>
+        </div>
+        <div class="r-carrez-liste">
+          ${piecesLignes || '<p class="r-note">Aucune pièce isolée distinctement.</p>'}
+        </div>
+      </div>`;
+
+    $('#btnCopierCarrez', elStats)?.addEventListener('click', () => {
+      const recap = `RÉCAPITULATIF DES SURFACES — ${nomFichier}\n` +
+        `Surface habitable estimée : ${surfaceTotalePieces.toFixed(1)} m²\n\n` +
+        res.pieces.map(p => `- ${p.nom || p.type} : ${(p.w * p.d).toFixed(1)} m² (${p.w.toFixed(1)}m x ${p.d.toFixed(1)}m)`).join('\n');
+      navigator.clipboard.writeText(recap).then(() => toast('Métré copié dans le presse-papier !'));
+    });
+    elMsg.innerHTML = `Plan analysé : <b>${res.murs.length} murs</b>, <b>${nbOuvertures} ouvertures</b>, <b>${res.pieces.length} pièces</b>. Cliquez sur « Générer la maquette 3D » pour visiter.`;
     btnGen.disabled = false;
+    if (btnPartager) btnPartager.style.display = 'inline-flex';
     afficherMode('apercu');
   };
 
@@ -1234,6 +1261,81 @@ function rendreReconstruction() {
       const im = new Image();
       im.src = url;
       await im.decode();
+
+      // Tentative de vectorisation avancée par IA Vision avec stepper interactif
+      let utiliseIA = false;
+      try {
+        const renduStepper = (etapeActive) => {
+          const etapes = [
+            'Lecture du document et vectorisation des murs',
+            'Détection des ouvertures (portes, allèges, baies)',
+            'Identification des pièces et métré Loi Carrez'
+          ];
+          return `
+            <div class="stepper-ia">
+              ${etapes.map((t, idx) => `
+                <div class="stepper-etape ${idx < etapeActive ? 'faite' : idx === etapeActive ? 'active' : ''}">
+                  <span class="stepper-point"></span>
+                  <span>${t}</span>
+                </div>
+              `).join('')}
+            </div>
+          `;
+        };
+
+        elMsg.innerHTML = renduStepper(0);
+
+        const reader = new FileReader();
+        const base64Promise = new Promise((resolve) => {
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(file);
+        });
+        const b64 = await base64Promise;
+
+        // Mise à jour visuelle du stepper pour donner vie à l'attente
+        const timerStep = setTimeout(() => { elMsg.innerHTML = renduStepper(1); }, 900);
+        const timerStep2 = setTimeout(() => { elMsg.innerHTML = renduStepper(2); }, 2200);
+
+        const rep = await fetch('/api/analyser-plan', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            image: b64,
+            largeur: +$('#regL', c).value,
+            hauteur: +$('#regH', c).value
+          })
+        });
+
+        clearTimeout(timerStep);
+        clearTimeout(timerStep2);
+
+        if (rep.ok) {
+          const repJson = await rep.json();
+          if (repJson.ok && repJson.plan?.murs?.length) {
+            utiliseIA = true;
+            const p = repJson.plan;
+            const resIA = {
+              vide: false,
+              largeur: p.largeur,
+              profondeur: p.profondeur,
+              murs: p.murs,
+              pieces: p.pieces || [],
+              echellePx: 0,
+              echelleDeduisible: !!p.echelleDeduisible,
+              moteur: repJson.moteur || 'IA Vision'
+            };
+            URL.revokeObjectURL(url);
+            appliquer(resIA, 'ia', nom);
+            const nbO = resIA.murs.reduce((acc, m) => acc + (m.ouvertures?.length || 0), 0);
+            elMsg.innerHTML = `Plan vectorisé avec succès par <b>IA Vision (${esc(repJson.moteur)})</b> : <b>${resIA.murs.length} murs</b>, <b>${nbO} ouvertures</b>, <b>${resIA.pieces.length} pièces</b>.`;
+            return;
+          }
+        }
+      } catch (errIA) {
+        console.warn('API IA non accessible, repli sur le moteur local :', errIA);
+      }
+
+      // Fallback sur le moteur heuristique local Canvas si l'IA n'est pas connectée
       const res = analyserImagePlan(im, { seuil: +$('#regS', c).value, largeurMetres: +$('#regL', c).value });
       URL.revokeObjectURL(url);
       appliquer(res, 'image', nom);
@@ -1290,6 +1392,24 @@ function rendreReconstruction() {
     });
   });
 
+  const btnPartager = $('#btnPartagerPlan', c);
+
+  btnPartager?.addEventListener('click', () => {
+    if (!planImporte) return;
+    try {
+      const payload = JSON.stringify(planImporte);
+      // compression légère ou hash base64
+      const b64 = btoa(unescape(encodeURIComponent(payload)));
+      sessionStorage.setItem('havre_plan_partage', payload);
+      const urlPartage = `${location.origin}${location.pathname}#/reconstruire?plan=session`;
+      navigator.clipboard.writeText(urlPartage).then(() => {
+        toast('Lien de la maquette copié ! Prêt à être envoyé au client.');
+      });
+    } catch (err) {
+      toast('Partage disponible en local.');
+    }
+  });
+
   btnGen.addEventListener('click', () => {
     if (!planImporte) return;
     const bien = {
@@ -1301,6 +1421,30 @@ function rendreReconstruction() {
     // la hauteur réglée dans le labo pilote réellement les murs de la maquette
     ouvrirVisite(bien, planImporte, { hauteur: +$('#regH', c).value });
   });
+
+  // Rechargement automatique si plan partagé présent
+  if (location.hash.includes('plan=session')) {
+    const sauve = sessionStorage.getItem('havre_plan_partage');
+    if (sauve) {
+      try {
+        const data = JSON.parse(sauve);
+        planImporte = data;
+        analyse = {
+          largeur: data.niveaux[0].largeur,
+          profondeur: data.niveaux[0].profondeur,
+          murs: data.niveaux[0].murs,
+          pieces: data.niveaux[0].pieces,
+          echellePx: 0
+        };
+        elPlan.innerHTML = planSVG(planImporte, { niveau: 0 });
+        elMsg.innerHTML = 'Plan partagé restauré avec succès.';
+        elVide.hidden = true;
+        btnGen.disabled = false;
+        btnPartager.style.display = 'inline-flex';
+        afficherMode('plan2d');
+      } catch (e) {}
+    }
+  }
 }
 
 /* ══════════════════════════════════════════════════════════════════

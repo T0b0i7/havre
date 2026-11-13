@@ -3,6 +3,7 @@
    Les plans sont générés par un moteur déterministe (BSP) : le même
    objet {pieces, murs, ouvertures} alimente le plan 2D ET la maquette 3D.
    ══════════════════════════════════════════════════════════════════ */
+import { mulberry32, hash, normaliser as _normaliser } from './utils.js';
 
 const IMG = {
   ext: [
@@ -82,20 +83,7 @@ export const AGENCE = {
 export const img = (id, w = 1600) =>
   `https://images.unsplash.com/${id}?auto=format&fit=crop&w=${w}&q=80`;
 
-/* ── aléatoire déterministe ── */
-function mulberry32(a) {
-  return function () {
-    a |= 0; a = (a + 0x6D2B79F5) | 0;
-    let t = Math.imul(a ^ (a >>> 15), 1 | a);
-    t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
-    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
-  };
-}
-function hash(str) {
-  let h = 2166136261;
-  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
-  return h >>> 0;
-}
+/* ── aléatoire déterministe : importés depuis utils.js ── */
 
 /* ══════════════════════════════════════════════════════════════════
    MOTEUR DE PLAN — découpage binaire de l'espace (BSP)
@@ -753,13 +741,8 @@ export const ARTICLES = [
   }
 ];
 
-/* aide à la recherche : normalisation */
-export function normaliser(t) {
-  return (t || '')
-    .toString().toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, ' ').trim();
-}
+/* aide à la recherche : normalisation — réexportée depuis utils.js */
+export const normaliser = _normaliser;
 
 export const VILLES = [...new Set(BIENS.map(b => b.ville))].sort((a, b) => a.localeCompare(b, 'fr'));
 export const PAYS = [...new Set(BIENS.map(b => b.pays))].sort((a, b) => a.localeCompare(b, 'fr'));
